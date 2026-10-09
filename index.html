@@ -476,6 +476,11 @@
         <input type="number" id="injectCents" min="-80" max="80" step="1" value="0">
       </div>
     </div>
+    <div class="field dropzone" id="appAudioDrop" style="margin-top:14px">
+      <label>上传音乐 / 音频文件（你的演奏录音，用于音准诊断）</label>
+      <button type="button" id="btnFileBig">上传音乐文件</button>
+      <div class="dropHint">支持 wav / mp3 / m4a / ogg / flac / aac 等常见格式，也可把音频文件直接拖到这里；手机浏览器点上方按钮即可选择音频。音频只在你的浏览器本地解码，不上传任何服务器。若点按钮没反应，请用系统浏览器（Edge / Chrome / Safari）打开本站。</div>
+    </div>
     <div class="row" style="margin-top:16px">
       <button id="btnRun">开始诊断（对齐参考序列）</button>
       <button id="btnFile" class="ghost">选择音频文件</button>
@@ -483,7 +488,7 @@
       <button id="btnDemo" class="ghost">生成无参考测试音</button>
       <input type="file" id="file" accept="audio/*" class="hidden">
     </div>
-    <div class="status" id="status">待机。先在上方选择参考来源（音阶模式生成 / 曲目模式导入），再提供录音或音频文件。</div>
+    <div class="status" id="status">待机。先在上方选择参考来源（音阶模式生成 / 曲目模式导入 / 曲库载入），再点下方「上传音乐文件」或「开始录音」提供演奏音频。</div>
   </div>
 
   <!-- ============ 3. 诊断概览 ============ -->
@@ -3373,7 +3378,12 @@ function bindDropZone(id, onFile, extWhitelist){
       const dot = f.name.lastIndexOf(".");
       const ext = (dot >= 0 ? f.name.slice(dot + 1) : "").toLowerCase();
       if (extWhitelist.indexOf(ext) < 0){
-        setStatus("不支持的文件后缀 ." + ext + "：白名单为 " + extWhitelist.map(function(x){ return "." + x; }).join(" / "), "err");
+        const AUDIO_EXTS = ["wav", "mp3", "m4a", "aac", "ogg", "oga", "opus", "flac", "webm", "mp4", "aiff", "ape", "wma"];
+        if (AUDIO_EXTS.indexOf(ext) >= 0){
+          setStatus("音频文件不能作为乐谱导入（此处仅收 MusicXML / MIDI / 文本简谱）。如需上传演奏录音做音准诊断，请到下方诊断区「上传音乐文件」；如需从音频提取参考级旋律，请到「拔带」模式。", "err");
+        } else {
+          setStatus("不支持的文件后缀 ." + ext + "：白名单为 " + extWhitelist.map(function(x){ return "." + x; }).join(" / "), "err");
+        }
         return;
       }
     }
@@ -3474,7 +3484,7 @@ async function extractLoadAudio(f){
       " Hz。点「提取单声部旋律」开始（建议先听一遍，确认是单声部清唱 / 独奏）。";
     setStatus("拔带：音频已就绪。", "ok");
   } catch (e){
-    setStatus("拔带：音频解码失败：" + e.message, "err");
+    setStatus("拔带：音频解码失败：" + e.message + "。常见原因：格式不被浏览器支持或文件损坏。建议使用 wav / mp3 / m4a / ogg，文件不超过 100MB；可先转成 mp3 后重试。", "err");
   }
 }
 function extractShiftOctave(delta){
@@ -3824,6 +3834,7 @@ function initP1(){
   bindDropZone("refJsonDrop", function(f){ importRefJsonFile(f); }, ["json"]);
   bindDropZone("extractDrop", function(f){ extractLoadAudio(f); },
                ["wav", "mp3", "m4a", "aac", "ogg", "oga", "opus", "flac", "webm", "mp4"]);
+  bindDropZone("appAudioDrop", function(f){ loadAppAudioFile(f); }, null);
 
   document.addEventListener("keydown", function(ev){
     const key = ev.key || "";
@@ -4746,6 +4757,22 @@ async function decodeAudioFile(file){
   return { data: mono, sr: ab.sampleRate };
 }
 
+/* 诊断区「上传音乐 / 音频文件」统一入口：选择文件与拖拽共用 */
+async function loadAppAudioFile(f){
+  try {
+    setStatus("正在解码音频…", "");
+    APP.audio = await decodeAudioFile(f);
+    APP.audioLabel = f.name + "（" + fmtNum(APP.audio.data.length / APP.audio.sr, 2) + " s @ " + APP.audio.sr + " Hz）";
+    if (APP.ref && APP.ref.notes && APP.ref.notes.length){
+      setStatus("音乐已就绪：" + APP.audioLabel + "。点「开始诊断（对齐参考序列）」开始分析。", "ok");
+    } else {
+      setStatus("音乐已就绪：" + APP.audioLabel + "。还差参考序列：请先在「音阶 / 曲目 / 曲库」模式载入参考谱，或在「拔带」模式从这段音频提取参考级旋律，再回来点「开始诊断」。", "");
+    }
+  } catch (e){
+    setStatus("音频解码失败：" + e.message + "。常见原因：格式不被浏览器支持或文件损坏。建议使用 wav / mp3 / m4a / ogg，文件不超过 100MB；可先转成 mp3 后重试。", "err");
+  }
+}
+
 let REC = null;
 async function toggleRecord(){
   const btn = $("btnRec");
@@ -5477,17 +5504,10 @@ function init(){
   $("calib").addEventListener("input", function(){ $("calibVal").textContent = this.value + " 音分"; });
   $("btnRun").addEventListener("click", function(){ runAnalysis(APP.audioLabel || "音频"); });
   $("btnFile").addEventListener("click", function(){ $("file").click(); });
-  $("file").addEventListener("change", async function(){
+  $("btnFileBig").addEventListener("click", function(){ $("file").click(); });
+  $("file").addEventListener("change", function(){
     const f = this.files && this.files[0];
-    if (!f) return;
-    try {
-      setStatus("正在解码音频…", "");
-      APP.audio = await decodeAudioFile(f);
-      APP.audioLabel = f.name + "（" + fmtNum(APP.audio.data.length / APP.audio.sr, 2) + " s @ " + APP.audio.sr + " Hz）";
-      setStatus("音频已就绪：" + APP.audioLabel + "。点「开始诊断（对齐参考序列）」开始分析。", "ok");
-    } catch (e){
-      setStatus("音频解码失败：" + e.message, "err");
-    }
+    if (f) loadAppAudioFile(f);
   });
   $("btnRec").addEventListener("click", toggleRecord);
   $("btnDemo").addEventListener("click", function(){
