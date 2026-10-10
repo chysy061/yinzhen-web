@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>音准诊断原型 v0.6</title>
+<title>音准诊断原型 v0.7 适老简易版</title>
 <style>
   :root{
     --bg:#0f1115; --panel:#171a21; --line:#262b36; --fg:#e8eaf0; --dim:#8b93a7;
@@ -96,10 +96,98 @@
     table{font-size:12.5px}
     th,td{padding:6px}
   }
+/* ===== 简易适老模式（默认展示） ===== */
+#simpleWrap{max-width:640px;margin:0 auto;padding:20px 16px 48px}
+#simpleWrap *{box-sizing:border-box}
+.simple-title{font-size:30px;font-weight:800;text-align:center;margin:12px 0 4px}
+.simple-sub{font-size:17px;text-align:center;color:#667;margin-bottom:22px;line-height:1.5}
+.simple-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px 16px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.simple-step{font-size:16px;font-weight:700;color:#334;margin-bottom:12px}
+.simple-step b{color:#c0392b;font-size:18px}
+.simple-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sbtn{display:block;width:100%;padding:16px 10px;font-size:19px;font-weight:700;border:none;border-radius:12px;cursor:pointer;background:#f0f2f5;color:#223;transition:transform .05s;font-family:inherit}
+.sbtn:active{transform:scale(.97)}
+.sbtn.s-ref{background:#eef3fb;border:1px solid #c9d8ef}
+.sbtn.s-ref.selected{background:#2f6fd0;color:#fff;border-color:#2f6fd0}
+.sbtn.s-record{background:#2f6fd0;color:#fff;font-size:20px}
+.sbtn.s-file{background:#fff;border:2px solid #2f6fd0;color:#2f6fd0;font-size:20px}
+.sbtn.s-again{background:#f39c12;color:#fff;font-size:19px;margin-top:8px}
+.sbtn.s-more{background:transparent;border:1px solid #bbb;color:#556;font-size:15px;padding:10px}
+.simple-cur{margin-top:12px;font-size:16px;color:#2f6fd0;font-weight:700;text-align:center;background:#f4f8ff;border-radius:10px;padding:10px;line-height:1.5}
+.simple-status{margin-top:12px;font-size:16px;color:#556;text-align:center;background:#f7f8fa;border-radius:10px;padding:10px;min-height:24px;line-height:1.5}
+.simple-status.ok{color:#1e8e5a;background:#ecf9f1}
+.simple-status.err{color:#c0392b;background:#fdf0ee}
+.s-score{font-size:52px;font-weight:800;color:#2f6fd0;text-align:center;line-height:1.1}
+.s-score.bad{color:#c0392b}.s-score.warn{color:#e67e22}
+.s-score-label{font-size:15px;color:#667;text-align:center;margin-bottom:8px}
+.s-kv{font-size:16px;color:#334;background:#f7f8fa;border-radius:10px;padding:12px;line-height:1.8}
+.s-kv b{color:#c0392b}
+#fullApp.hidden{display:none}
+#simpleWrap.hidden{display:none}
+@media (prefers-color-scheme: dark){
+  .simple-card{background:#1f2430;border-color:#343b4a}
+  .simple-title,.simple-step,.s-kv{color:#e6e9f0}
+  .simple-sub{color:#9aa3b5}
+  .sbtn.s-ref{background:#232a38;border-color:#39445c;color:#dfe6f0}
+  .sbtn.s-ref.selected{background:#2f6fd0;border-color:#2f6fd0;color:#fff}
+  .sbtn.s-file{background:transparent;border-color:#5b8bd4;color:#8ab3ea}
+  .simple-cur{background:#1d2940;color:#8ab3ea}
+  .simple-status{background:#242b39;color:#b7c1d4}
+  .simple-status.ok{background:#16302a;color:#6fd3a3}
+  .simple-status.err{background:#3a1f1d;color:#f2a0a0}
+  .s-kv{background:#242b39}
+}
+@media (max-width:480px){ .simple-title{font-size:26px} .sbtn{font-size:18px;padding:15px 8px} }
 </style>
 </head>
 <body>
 <div class="wrap">
+
+  <!-- ============ 简易适老界面（默认，三步式） ============ -->
+  <div id="simpleWrap">
+    <div class="simple-title">音准练习助手</div>
+    <div class="simple-sub">对着手机唱一句 / 演奏一段，马上知道音准好不好</div>
+
+    <div class="simple-card">
+      <div class="simple-step"><b>第 1 步</b>　想练习什么？点一个</div>
+      <div class="simple-grid">
+        <button class="sbtn s-ref" data-refkey="scale">C 大调音阶</button>
+        <button class="sbtn s-ref" data-refkey="twinkle">小星星</button>
+        <button class="sbtn s-ref" data-refkey="ode">欢乐颂</button>
+        <button class="sbtn s-more" id="sBtnMore">更多内容…</button>
+      </div>
+      <div class="simple-cur" id="sCurRef">还没选练习内容</div>
+    </div>
+
+    <div class="simple-card">
+      <div class="simple-step"><b>第 2 步</b>　开始演奏</div>
+      <div class="simple-grid">
+        <button class="sbtn s-record" id="sBtnRec">开始录音</button>
+        <button class="sbtn s-file" id="sBtnFile">选择音乐文件</button>
+      </div>
+      <input type="file" id="sFile" style="display:none">
+      <div class="simple-status" id="sStatus">请先选好练习内容，再录音或选文件</div>
+    </div>
+
+    <div class="simple-card hidden" id="sResultCard">
+      <div class="simple-step"><b>第 3 步</b>　诊断结果</div>
+      <div class="s-score" id="sScore">--</div>
+      <div class="s-score-label">综合音准得分</div>
+      <div class="s-kv" id="sKv"></div>
+      <button class="sbtn s-again" id="sAgain">再练一次</button>
+    </div>
+
+    <div style="text-align:center;margin-top:6px">
+      <button class="sbtn s-more" id="sBtnMore2">进入完整版（更多功能）</button>
+    </div>
+  </div>
+  <!-- ============ /简易界面 ============ -->
+
+  <div id="fullApp">
+
+    <div style="text-align:right;margin:10px 0 0">
+      <button class="ghost mini" id="btnGoSimple">← 返回简易版</button>
+    </div>
 
   <div class="refbar" id="refBar">
     <div class="rb-l"><span class="tag" id="refTag">当前参考序列</span>
@@ -572,6 +660,8 @@
     能量门限滤掉弱奏、音高超出引擎检测音域），故一律标注「漏音或未被检出（需复核）」，不武断判定漏吹。<br>
     5. 全部输出为「声学层推测」，不做病因断言（如手型、指法、气息）；不替代真人教师，定位为课后练习辅助。
   </div>
+
+  </div><!-- /fullApp -->
 
 </div>
 
@@ -5543,6 +5633,147 @@ function init(){
 }
 
 init();
+
+/* ========== 简易适老模式（默认展示，三步式） ========== */
+(function(){
+  "use strict";
+  const SIMPLE_REFS = {
+    scale: {
+      label: "C 大调音阶",
+      notes: (function(){ const n=[]; const m=[60,62,64,65,67,69,71,72,71,69,67,65,64,62,60]; for(let i=0;i<m.length;i++) n.push({midi:m[i], dur:0.5}); return n; })(),
+      meta: { kind:"scale", source:"内置规则生成（公版音阶，非任何机构要求）" }
+    },
+    twinkle: {
+      label: "小星星",
+      notes: (function(){ const s="60 60 67 67 69 69 67 65 65 64 64 62 62 60"; const a=s.split(" "); const n=[]; for(let i=0;i<a.length;i++){ n.push({midi:+a[i], dur:(i===6||i===13)?1:0.5}); } return n; })(),
+      meta: { kind:"piece", source:"内置公版童谣（仅供练习演示）" }
+    },
+    ode: {
+      label: "欢乐颂",
+      notes: (function(){ const s="64 64 65 67 67 65 64 62 60 60 62 64 64 62 62"; const a=s.split(" "); const n=[]; for(let i=0;i<a.length;i++){ n.push({midi:+a[i], dur:(i===12||i===13||i===14)?1:0.5}); } return n; })(),
+      meta: { kind:"piece", source:"贝多芬《第九交响曲》主题（公有领域，仅供练习演示）" }
+    }
+  };
+  function setSimpleStatus(msg, cls){
+    const el = $("sStatus");
+    if (el){ el.textContent = msg; el.className = "simple-status" + (cls ? " " + cls : ""); }
+  }
+  function setSimpleCur(txt){
+    const el = $("sCurRef");
+    if (el) el.textContent = txt;
+  }
+  function setSimpleResult(d){
+    const card = $("sResultCard");
+    if (!card) return;
+    card.classList.remove("hidden");
+    const sc = d.scores.intonation;
+    const el = $("sScore");
+    el.textContent = fmtNum(sc, 1);
+    el.className = "s-score " + (sc >= 85 ? "" : (sc >= 65 ? "warn" : "bad"));
+    const it = d.intonation, cp = d.completeness, sm = d.summary;
+    $("sKv").innerHTML =
+      "音准命中率：<b>" + fmtNum(it.hit_rate, 1) + "%</b>（好 " + it.good + " / 警示 " + it.warn + " / 不合格 " + it.bad + "）<br>" +
+      "平均偏差：<b>" + fmtNum(it.mae_cents, 2) + "</b> 音分<br>" +
+      "错音：<b>" + sm.wrong + "</b> 处　漏音/未检出：<b>" + sm.missing + "</b> 处<br>" +
+      "完整性：<b>" + fmtNum(cp.coverage * 100, 1) + "%</b>　节奏：<b>" + (d.rhythm.stable ? "稳定" : "偏不稳") + "</b><br>" +
+      "参考：" + esc(APP.ref.label) + "　演奏：" + esc(APP.audioLabel || "录音/文件");
+  }
+  function simpleRun(){
+    if (!APP.ref || !APP.ref.notes.length){ setSimpleStatus("请先点第 1 步选好练习内容", "err"); return; }
+    if (!APP.audio || !APP.audio.data.length){ setSimpleStatus("还没有声音：请点「开始录音」或「选择音乐文件」（第 2 步）", "err"); return; }
+    setSimpleStatus("正在分析…请稍等", "");
+    try {
+      const d = runAnalysis("简易模式");
+      if (d){ setSimpleStatus("分析完成，请看下面的结果", "ok"); setSimpleResult(d); }
+    } catch (e){ setSimpleStatus("分析失败：" + e.message, "err"); }
+  }
+  function waitAudio(cb, tries){
+    tries = tries || 0;
+    if (APP.audio && APP.audio.data.length) return cb();
+    if (tries > 60) return setSimpleStatus("音频读取超时或格式不支持，请换 wav / mp3 / m4a / ogg 文件试试", "err");
+    setTimeout(function(){ waitAudio(cb, tries + 1); }, 200);
+  }
+  function simpleLoadAudio(f){
+    if (!f) return;
+    setSimpleStatus("正在读取音频…", "");
+    loadAppAudioFile(f);
+    waitAudio(function(){
+      setSimpleStatus("音频已就绪，正在分析…", "ok");
+      simpleRun();
+    });
+  }
+  async function simpleRecord(){
+    const btn = $("sBtnRec");
+    if (window.SIMPLE_REC && SIMPLE_REC.recording){ SIMPLE_REC.recorder.stop(); return; }
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia)
+        throw new Error("当前环境不支持麦克风。请点「选择音乐文件」上传录音，或用 Edge/Chrome 打开页面后录音。");
+      const stream = await navigator.mediaDevices.getUserMedia({ audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:false } });
+      const mr = new MediaRecorder(stream);
+      const chunks = [];
+      window.SIMPLE_REC = { recording:true, recorder:mr, chunks:chunks, stream:stream };
+      mr.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+      mr.onstop = async function(){
+        window.SIMPLE_REC.recording = false;
+        stream.getTracks().forEach(function(t){ t.stop(); });
+        btn.textContent = "开始录音";
+        try {
+          const blob = new Blob(chunks, { type: chunks[0] ? chunks[0].type : "audio/webm" });
+          const f = new File([blob], "recording.webm", { type: blob.type });
+          APP.audio = await decodeAudioFile(f);
+          APP.audioLabel = "录音（" + fmtNum(APP.audio.data.length / APP.audio.sr, 2) + " 秒）";
+          setSimpleStatus("录音完成，正在分析…", "ok");
+          simpleRun();
+        } catch (e){ setSimpleStatus("录音处理失败：" + e.message, "err"); }
+      };
+      mr.start();
+      btn.textContent = "停止录音";
+      setSimpleStatus("正在录音…再点一次「停止录音」", "");
+    } catch (e){ setSimpleStatus("无法录音：" + e.message, "err"); }
+  }
+  function switchUI(mode){
+    const simple = (mode !== "full");
+    $("simpleWrap").classList.toggle("hidden", !simple);
+    $("fullApp").classList.toggle("hidden", simple);
+    try { localStorage.setItem("yinzhen_ui", simple ? "simple" : "full"); } catch (e){}
+  }
+  function initSimple(){
+    let saved = null;
+    try { saved = localStorage.getItem("yinzhen_ui"); } catch (e){}
+    switchUI(saved === "full" ? "full" : "simple");
+    const refs = document.querySelectorAll("#simpleWrap .s-ref");
+    refs.forEach(function(b){
+      b.addEventListener("click", function(){
+        const key = b.getAttribute("data-refkey");
+        const r = SIMPLE_REFS[key];
+        if (!r) return;
+        setRef(r.notes, r.meta);
+        refs.forEach(function(x){ x.classList.remove("selected"); });
+        b.classList.add("selected");
+        setSimpleCur("已选：「" + r.label + "」，可以开始演奏了");
+        setSimpleStatus("练习内容已选好，请录音或选择音乐文件", "ok");
+      });
+    });
+    $("sBtnRec").addEventListener("click", simpleRecord);
+    $("sBtnFile").addEventListener("click", function(){ $("sFile").click(); });
+    $("sFile").addEventListener("change", function(){
+      const f = this.files && this.files[0];
+      if (f) simpleLoadAudio(f);
+      this.value = "";
+    });
+    $("sAgain").addEventListener("click", function(){
+      APP.audio = null; APP.audioLabel = null; APP.result = null;
+      $("sResultCard").classList.add("hidden");
+      setSimpleCur(APP.ref ? "已选：「" + APP.ref.label + "」" : "还没选练习内容");
+      setSimpleStatus(APP.ref ? "已清空，请重新录音或选择音乐文件" : "请先选好练习内容", "");
+    });
+    $("sBtnMore").addEventListener("click", function(){ switchUI("full"); switchMode("piece"); });
+    $("sBtnMore2").addEventListener("click", function(){ switchUI("full"); });
+    $("btnGoSimple").addEventListener("click", function(){ switchUI("simple"); });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initSimple);
+  else initSimple();
+})();
 
 </script>
 </body>
