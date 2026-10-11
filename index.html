@@ -7,7 +7,7 @@
 <title>音准诊断原型 v0.7 适老简易版</title>
 <style>
   :root{
-    --bg:#F2F2F7; --panel:#FFFFFF; --line:rgba(60,60,67,.14); --fg:#1C1C1E; --dim:#6E6E73;
+    --bg:#F2F2F7; --panel:#FFFFFF; --line:rgba(60,60,67,.14); --fg:#1C1C1E; --dim:#5F5F64;
     --ok:#34C759; --warn:#FF9F0A; --bad:#FF3B30; --acc:#007AFF;
     --card-shadow:0 1px 3px rgba(0,0,0,.05),0 6px 18px rgba(0,0,0,.04);
     --radius:12px; --radius-btn:10px; --touch-h:44px;
@@ -70,8 +70,10 @@
   .note[data-live="ok"]{color:#0a7d33}
   .note[data-live="err"]{color:#b3261e}
   .note[data-live="warn"]{color:#8a5a00}
-  .help-ico{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#0b6bff;color:#fff;font-size:14px;font-weight:700;cursor:pointer;flex:0 0 auto;line-height:1;user-select:none;vertical-align:middle}
-  .help-ico:active{opacity:.75}
+  .help-ico{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;cursor:pointer;flex:0 0 auto;line-height:1;user-select:none;vertical-align:middle;position:relative;color:transparent;font-size:0}
+  .help-ico::before{content:"";position:absolute;width:24px;height:24px;border-radius:50%;background:#0b6bff}
+  .help-ico::after{content:"?";position:absolute;width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;font-weight:700;line-height:1}
+  .help-ico:active::before{opacity:.75}
   .help-body{margin-top:8px;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;font-size:13px;line-height:1.8;color:var(--dim)}
   .mode-big .tab{display:flex;flex-direction:column;gap:2px;padding:14px 10px;font-size:18px;font-weight:700;min-height:64px;align-items:center;justify-content:center}
   .mode-big .tab span{font-size:12px;font-weight:400;color:var(--dim)}
@@ -209,8 +211,35 @@ pre{background:#F9F9FB;border:1px solid rgba(60,60,67,.10);border-radius:12px;pa
 .note{font-size:13px;color:var(--dim)}
 .note[data-live="ok"]{color:#1E8E5A} .note[data-live="err"]{color:var(--bad)} .note[data-live="warn"]{color:#C77800}
 /* 帮助图标 */
-.help-ico{background:var(--acc);width:24px;height:24px;font-size:15px}
+.help-ico::before{background:var(--acc)}
 .help-body{background:#F9F9FB;border:1px solid rgba(60,60,67,.10);border-radius:12px;color:var(--dim)}
+/* 返回简易版：顶部常驻、sticky */
+.backbar{position:sticky;top:0;z-index:40;display:flex;justify-content:flex-start;margin:-6px -8px 14px;padding:10px 8px 12px;background:linear-gradient(to bottom,rgba(242,242,247,.97) 72%,rgba(242,242,247,0))}
+.back-simple{display:inline-flex;align-items:center;gap:8px;height:44px;min-height:44px;padding:0 18px 0 14px;background:#fff;color:var(--acc);border:1px solid rgba(60,60,67,.16);border-radius:22px;font-size:15px;font-weight:600;box-shadow:var(--card-shadow);cursor:pointer;-webkit-tap-highlight-color:transparent;font-family:var(--font-apple)}
+.back-simple:hover{opacity:.9}
+.back-simple:active{transform:scale(.97)}
+.back-simple svg{display:block;flex:0 0 auto}
+/* 详细指标折叠按钮 */
+.detail-toggle{display:inline-flex;align-items:center;gap:6px;margin-top:12px}
+/* 简易版特大字档位 */
+.simple-sub{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap}
+.s-bigtext{display:inline-flex;align-items:center;justify-content:center;height:44px;min-height:44px;padding:0 14px;background:transparent;color:var(--acc);border:1px solid rgba(0,122,255,.35);border-radius:22px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font-apple)}
+.s-bigtext:hover{opacity:.9}
+.s-bigtext[aria-pressed="true"]{background:var(--acc);color:#fff;border-color:var(--acc)}
+#simpleWrap.bigtext{font-size:1.18em}
+#simpleWrap.bigtext .simple-title{font-size:36px}
+#simpleWrap.bigtext .simple-sub{font-size:19px}
+#simpleWrap.bigtext .simple-step{font-size:19px}
+#simpleWrap.bigtext .sbtn{font-size:22px;padding:18px 10px;min-height:62px}
+#simpleWrap.bigtext .sbtn.s-record{font-size:24px}
+#simpleWrap.bigtext .sbtn.s-file{font-size:24px}
+#simpleWrap.bigtext .sbtn.s-more{font-size:18px;padding:12px}
+#simpleWrap.bigtext .simple-cur,#simpleWrap.bigtext .simple-status{font-size:19px}
+#simpleWrap.bigtext .s-kv{font-size:19px}
+#simpleWrap.bigtext .s-score{font-size:62px}
+#simpleWrap.bigtext .s-score-label{font-size:18px}
+#simpleWrap.bigtext .s-speakask{font-size:18px}
+#simpleWrap.bigtext .s-checkinmsg{font-size:17px}
 /* 步骤标题 */
 .step-title{font-size:20px;font-weight:700;letter-spacing:-.2px}
 .step-title .step-num{background:var(--acc)}
@@ -266,20 +295,20 @@ pre{background:#F9F9FB;border:1px solid rgba(60,60,67,.10);border-radius:12px;pa
 .s-kv b{color:var(--bad)}
 /* ============ 强制浅色 iOS 风格（覆盖 prefers-color-scheme:dark 段） ============ */
 @media (prefers-color-scheme: dark){
-  :root{--bg:#F2F2F7;--panel:#FFFFFF;--line:rgba(60,60,67,.14);--fg:#1C1C1E;--dim:#6E6E73}
+  :root{--bg:#F2F2F7;--panel:#FFFFFF;--line:rgba(60,60,67,.14);--fg:#1C1C1E;--dim:#5F5F64}
   .simple-card{background:#fff;border-color:rgba(60,60,67,.10)}
   .simple-title,.simple-step,.s-kv{color:#1C1C1E}
-  .simple-sub{color:#6E6E73}
+  .simple-sub{color:#5F5F64}
   .sbtn.s-ref{background:#F0F5FF;border-color:rgba(0,122,255,.25);color:#007AFF}
   .sbtn.s-ref.selected{background:#007AFF;border-color:#007AFF;color:#fff}
   .sbtn.s-file{background:#fff;border-color:#007AFF;color:#007AFF}
   .simple-cur{background:#F0F5FF;color:#007AFF}
-  .simple-status{background:#F2F3F5;color:#6E6E73}
+  .simple-status{background:#F2F3F5;color:#5F5F64}
   .simple-status.ok{background:#ECF9F1;color:#1E8E5A}
   .simple-status.err{background:#FDF0EE;color:#FF3B30}
   .s-kv{background:#F9F9FB;color:#1C1C1E}
   .pending{background:#FFF8EC;color:#7A5A00}
-  .help-ico{background:#007AFF}
+  .help-ico::before{background:#007AFF}
   .metric{background:#F9F9FB}
   pre{background:#F9F9FB;color:#3A3A3C}
 }
@@ -343,6 +372,7 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
     <div class="simple-title">音准练习助手</div>
     <div class="simple-sub">对着手机唱一句 / 演奏一段，马上知道音准好不好
       <span id="simpleHelpIco" class="help-ico" role="button" tabindex="0" aria-label="怎么用？点这里" title="怎么用？点这里">?</span>
+      <button type="button" id="sBigText" class="s-bigtext" aria-pressed="false" aria-label="特大字显示开关">特大字 关</button>
     </div>
     <div id="simpleHelpBody" class="help-body hidden" style="margin:0 0 16px;font-size:15px">
       <b>怎么用（一共 3 步）：</b><br>
@@ -356,30 +386,30 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
 
     <div class="simple-card">
       <div class="simple-step"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5v11.5a3.5 3.5 0 1 1-2-3.2"/><path d="M9 5l9-1.5v11.8a3.5 3.5 0 1 1-2-3.2"/><path d="M18 3.5V15"/></svg><b>第 1 步</b>　想练习什么？点一个</div>
-      <div class="simple-grid">
-        <button class="sbtn s-ref" data-refkey="scale">C 大调音阶</button>
-        <button class="sbtn s-ref" data-refkey="twinkle">小星星</button>
-        <button class="sbtn s-ref" data-refkey="ode">欢乐颂</button>
-        <button class="sbtn s-more" id="sBtnMore">更多内容…</button>
+      <div class="simple-grid" role="tablist" aria-label="选择练习内容">
+        <button class="sbtn s-ref" data-refkey="scale" role="tab" aria-selected="false" aria-controls="sCurRef">C 大调音阶</button>
+        <button class="sbtn s-ref" data-refkey="twinkle" role="tab" aria-selected="false" aria-controls="sCurRef">小星星</button>
+        <button class="sbtn s-ref" data-refkey="ode" role="tab" aria-selected="false" aria-controls="sCurRef">欢乐颂</button>
+        <button class="sbtn s-more" id="sBtnMore" aria-label="更多练习内容">更多内容…</button>
       </div>
-      <div class="simple-cur" id="sCurRef" aria-live="polite">还没选练习内容</div>
-      <button class="sbtn s-listen" id="sBtnListen"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h3l5 4V5L7 9H4z"/><path d="M15.5 8.5a4 4 0 0 1 0 7"/></svg>先听一听</button>
+      <div class="simple-cur" id="sCurRef" role="tabpanel" aria-live="polite">还没选练习内容</div>
+      <button class="sbtn s-listen" id="sBtnListen" aria-label="先听一听示范音"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h3l5 4V5L7 9H4z"/><path d="M15.5 8.5a4 4 0 0 1 0 7"/></svg>先听一听</button>
     </div>
 
     <div class="simple-card">
       <div class="simple-step"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3.5"/><path d="M8.5 21.5h7"/></svg><b>第 2 步</b>　开始演奏</div>
       <div class="simple-grid">
-        <button class="sbtn s-record" id="sBtnRec"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3.5"/><path d="M8.5 21.5h7"/></svg>开始录音</button>
-        <button class="sbtn s-file" id="sBtnFile"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><circle cx="7" cy="18" r="3"/><circle cx="17" cy="16" r="3"/><path d="M10 18V5l10-2v13"/></svg>从手机里选音乐</button>
+        <button class="sbtn s-record" id="sBtnRec" aria-label="开始录音"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3.5"/><path d="M8.5 21.5h7"/></svg>开始录音</button>
+        <button class="sbtn s-file" id="sBtnFile" aria-label="从手机里选音乐文件"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><circle cx="7" cy="18" r="3"/><circle cx="17" cy="16" r="3"/><path d="M10 18V5l10-2v13"/></svg>从手机里选音乐</button>
       </div>
-      <input type="file" id="sFile" style="display:none">
+      <input type="file" id="sFile" aria-label="选择音频文件" style="display:none">
       <div class="s-wave" id="sWave"><canvas id="sWaveCanvas" height="96"></canvas></div>
       <div class="simple-status" id="sStatus" aria-live="polite">请先选好练习内容，再录音或选文件</div>
     </div>
 
     <div class="simple-card hidden" id="sResultCard">
       <div class="simple-step"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></svg><b>第 3 步</b>　诊断结果</div>
-      <button class="sbtn s-speak" id="sBtnSpeak"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h3l5 4V5L7 9H4z"/><path d="M15.5 8.5a4 4 0 0 1 0 7"/></svg>播报结果</button>
+      <button class="sbtn s-speak" id="sBtnSpeak" aria-label="播报诊断结果"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h3l5 4V5L7 9H4z"/><path d="M15.5 8.5a4 4 0 0 1 0 7"/></svg>播报结果</button>
       <div class="s-speakask hidden" id="sSpeakAsk">以后每次出结果都自动朗读吗？
         <div><button class="ghost mini" id="sSpeakYes">好的</button><button class="ghost mini" id="sSpeakNo">不要</button></div>
       </div>
@@ -387,25 +417,28 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
       <div class="s-score" id="sScore">--</div>
       <div class="s-score-label">音准分数（越高越准）</div>
       <div class="s-kv" id="sKv"></div>
-      <button class="sbtn s-listenme" id="sBtnListenMe"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h3l5 4V5L7 9H4z"/><path d="M15.5 8.5a4 4 0 0 1 0 7"/></svg>听我唱的</button>
-      <button class="sbtn s-again" id="sAgain"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9a7 7 0 0 1 12-3l2 2"/><path d="M20 15a7 7 0 0 1-12 3l-2-2"/><path d="M18 3v4h-4"/><path d="M6 21v-4h4"/></svg>再唱一次</button>
-      <button class="sbtn s-checkin" id="sBtnCheckin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.6 5.6 6 .7-4.5 4 1.2 5.9L12 16.6 6.7 19.2l1.2-5.9-4.5-4 6-.7z"/></svg>今天练完啦</button>
+      <button class="sbtn s-listenme" id="sBtnListenMe" aria-label="听我唱的录音"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h3l5 4V5L7 9H4z"/><path d="M15.5 8.5a4 4 0 0 1 0 7"/></svg>听我唱的</button>
+      <button class="sbtn s-again" id="sAgain" aria-label="再唱一次，重新开始"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9a7 7 0 0 1 12-3l2 2"/><path d="M20 15a7 7 0 0 1-12 3l-2-2"/><path d="M18 3v4h-4"/><path d="M6 21v-4h4"/></svg>再唱一次</button>
+      <button class="sbtn s-checkin" id="sBtnCheckin" aria-label="今天练完啦，打卡记录"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.6 5.6 6 .7-4.5 4 1.2 5.9L12 16.6 6.7 19.2l1.2-5.9-4.5-4 6-.7z"/></svg>今天练完啦</button>
       <div class="s-checkinmsg" id="sCheckinMsg" aria-live="polite"></div>
     </div>
 
     <div style="text-align:center;margin-top:6px">
-      <button class="sbtn s-more" id="sBtnMore2">进入完整版（更多功能）</button>
+      <button class="sbtn s-more" id="sBtnMore2" aria-label="进入完整版（更多功能）">进入完整版（更多功能）</button>
     </div>
   </div>
   <!-- ============ /简易界面 ============ -->
 
   <div id="fullApp">
 
-    <div style="text-align:right;margin:10px 0 0">
-      <button class="ghost mini" id="btnGoSimple">← 返回简易版</button>
+    <div class="backbar" id="backBar">
+      <button class="back-simple" id="btnGoSimple" aria-label="返回简易版">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 5l-7 7 7 7"/></svg>
+        <span>返回简易版</span>
+      </button>
     </div>
 
-  <div class="refbar" id="refBar">
+  <div class="refbar" id="refBar" aria-live="polite">
     <div class="rb-l"><span class="tag" id="refTag">当前参考序列</span>
       <span class="rb-text" id="refText">尚未载入参考序列</span></div>
     <div class="rb-r">
@@ -413,7 +446,7 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
       <button class="ghost mini" id="btnRefStop">停止</button>
       <button class="ghost mini" id="btnRefExport" title="把当前参考序列导出为 v0.5 参考序列包 .json">导出 .json</button>
       <button class="ghost mini" id="btnRefImport" title="导入参考序列包 .json（沿用 v0.5 schema）">导入 .json</button>
-      <input type="file" id="refJsonFile" accept=".json,application/json" style="display:none">
+      <input type="file" id="refJsonFile" accept=".json,application/json" aria-label="选择参考序列 JSON 文件" style="display:none">
       <button class="ghost mini" id="btnRefGo">去诊断</button>
       <button class="ghost mini" id="btnRefClear">清空</button>
     </div>
@@ -437,11 +470,11 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
   <!-- ============ 1. 模式切换与参考来源 ============ -->
   <div class="card">
     <div class="step-title"><span class="step-num">1</span>选择练习内容</div>
-    <div class="tabs mode-big">
-      <button class="tab active" id="tabScale">音阶练习<br><span>哆来咪爬音</span></button>
-      <button class="tab" id="tabPiece">曲目练习<br><span>按歌谱练</span></button>
-      <button class="tab" id="tabLib">曲库<br><span>自带歌曲选</span></button>
-      <button class="tab" id="tabExtract">拔带<br><span>从录音变谱</span></button>
+    <div class="tabs mode-big" role="tablist" aria-label="选择练习内容模式">
+      <button class="tab active" id="tabScale" role="tab" aria-selected="true" aria-controls="scalePanel">音阶练习<br><span>哆来咪爬音</span></button>
+      <button class="tab" id="tabPiece" role="tab" aria-selected="false" aria-controls="piecePanel">曲目练习<br><span>按歌谱练</span></button>
+      <button class="tab" id="tabLib" role="tab" aria-selected="false" aria-controls="libPanel">曲库<br><span>自带歌曲选</span></button>
+      <button class="tab" id="tabExtract" role="tab" aria-selected="false" aria-controls="extractPanel">拔带<br><span>从录音变谱</span></button>
     </div>
 
     <!-- ---- 音阶模式 ---- -->
@@ -518,7 +551,7 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
       <div class="row">
         <div class="field dropzone" id="scoreDrop">
           <label>参考谱文件</label>
-          <input type="file" id="scoreFile">
+          <input type="file" id="scoreFile" aria-label="选择乐谱文件（MusicXML / MIDI / 文本简谱）">
           <div class="dropHint">也可以把乐谱文件直接拖到这里</div>
         </div>
         <div class="field">
@@ -585,7 +618,7 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
       <div class="row">
         <div class="field dropzone" id="extractDrop" style="flex:2 1 240px">
           <label>音频文件</label>
-          <input type="file" id="extractFile">
+          <input type="file" id="extractFile" aria-label="选择要拔带的录音文件">
           <div class="dropHint">也可以把音频文件直接拖到这里（wav / mp3 / m4a / ogg 等）</div>
         </div>
         <div class="field">
@@ -792,7 +825,7 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
       <button id="btnRec" class="ghost">开始录音</button>
       <button id="btnDemo" class="ghost">生成无参考测试音</button>
       <button id="btnUploadSelftest" class="ghost" title="自动检查所有上传入口与解码链路">上传自检</button>
-      <input type="file" id="file" class="hidden">
+      <input type="file" id="file" class="hidden" aria-label="选择参考序列文件">
     </div>
     <div class="status" id="status" aria-live="polite">待机。先选好练习内容，再上传或录音。</div>
     <div class="ref-guide hidden" id="refGuide">
@@ -809,6 +842,8 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
   <div class="card hidden" id="overviewCard">
     <h2>诊断概览</h2>
     <div class="row" id="metrics"></div>
+    <button type="button" class="ghost detail-toggle" id="btnDetailMetrics" aria-expanded="false" aria-controls="metricsDetail">查看详细指标 ▾</button>
+    <div class="row hidden" id="metricsDetail"></div>
     <div class="note" id="overviewNote"></div>
   </div>
 
@@ -5290,17 +5325,24 @@ function metricCard(k, v, cls){
 function renderResult(d, r){
   const it = d.intonation, rp = d.rhythm, cp = d.completeness, al = d.alignment, sc = d.scores;
 
-  /* 概览 */
+  /* 概览（渐进披露：先关键概览，其余专业指标收进折叠区） */
+  const btnDetail = document.getElementById("btnDetailMetrics");
+  if (btnDetail){
+    document.getElementById("metricsDetail").classList.add("hidden");
+    btnDetail.setAttribute("aria-expanded", "false");
+    btnDetail.innerHTML = "查看详细指标 ▾";
+  }
   $("metrics").innerHTML =
     metricCard("综合音准得分", fmtNum(sc.intonation, 1), scoreCls(sc.intonation)) +
     metricCard("音准命中率（±" + it.tol_cents + " 音分）", fmtNum(it.hit_rate, 1) + "%", scoreCls(it.hit_rate)) +
-    metricCard("平均偏差 MAE", fmtNum(it.mae_cents, 2) + " 音分") +
-    metricCard("P95 / 最大偏差", fmtNum(it.p95_cents, 2) + " / " + fmtNum(it.max_abs_cents, 2)) +
-    metricCard("整体倾向", it.direction) +
     metricCard("错音", d.summary.wrong, d.summary.wrong ? "bad" : "ok") +
     metricCard("漏音/未检出", d.summary.missing, d.summary.missing ? "warn" : "ok") +
     metricCard("完整性覆盖率", fmtNum(cp.coverage * 100, 1) + "%", scoreCls(sc.completeness)) +
-    metricCard("节奏稳定", rp.stable ? "稳定" : "偏不稳", rp.stable ? "ok" : "warn") +
+    metricCard("节奏稳定", rp.stable ? "稳定" : "偏不稳", rp.stable ? "ok" : "warn");
+  document.getElementById("metricsDetail").innerHTML =
+    metricCard("平均偏差 MAE", fmtNum(it.mae_cents, 2) + " 音分") +
+    metricCard("P95 / 最大偏差", fmtNum(it.p95_cents, 2) + " / " + fmtNum(it.max_abs_cents, 2)) +
+    metricCard("整体倾向", it.direction) +
     metricCard("速度比（演奏/参考）", fmtNum(al.tempo_ratio, 3)) +
     metricCard("起始偏移", fmtNum(al.offset_sec, 3) + " s") +
     metricCard("参考 / 检测音数", d.summary.ref_notes + " / " + d.summary.detected_notes) +
@@ -5881,6 +5923,10 @@ function switchMode(mode){
   $("tabPiece").classList.toggle("active", mode === "piece");
   $("tabLib").classList.toggle("active", mode === "lib");
   if ($("tabExtract")) $("tabExtract").classList.toggle("active", mode === "extract");
+  $("tabScale").setAttribute("aria-selected", mode === "scale" ? "true" : "false");
+  $("tabPiece").setAttribute("aria-selected", mode === "piece" ? "true" : "false");
+  $("tabLib").setAttribute("aria-selected", mode === "lib" ? "true" : "false");
+  if ($("tabExtract")) $("tabExtract").setAttribute("aria-selected", mode === "extract" ? "true" : "false");
   show("scalePanel", mode === "scale");
   show("piecePanel", mode === "piece");
   show("libPanel", mode === "lib");
@@ -5905,6 +5951,38 @@ function init(){
   $("tabScale").addEventListener("click", function(){ switchMode("scale"); });
   $("tabPiece").addEventListener("click", function(){ switchMode("piece"); });
   if ($("tabExtract")) $("tabExtract").addEventListener("click", function(){ switchMode("extract"); });
+  /* P1-1 键盘方向键导航：完整版模式 tab */
+  (function(){
+    const modes = ["scale", "piece", "lib", "extract"];
+    const tabs = modes.map(function(m){ return document.getElementById("tab" + m.charAt(0).toUpperCase() + m.slice(1)); })
+                     .filter(function(el){ return !!el; });
+    const wrap = document.querySelector(".tabs.mode-big");
+    if (!wrap || !tabs.length) return;
+    wrap.addEventListener("keydown", function(ev){
+      const idx = tabs.indexOf(document.activeElement);
+      if (idx < 0) return;
+      let next = -1;
+      if (ev.key === "ArrowRight" || ev.key === "ArrowDown") next = (idx + 1) % tabs.length;
+      else if (ev.key === "ArrowLeft" || ev.key === "ArrowUp") next = (idx - 1 + tabs.length) % tabs.length;
+      else if (ev.key === "Home") next = 0;
+      else if (ev.key === "End") next = tabs.length - 1;
+      else return;
+      ev.preventDefault();
+      switchMode(modes[next]);
+      tabs[next].focus();
+    });
+  })();
+  /* P1-4 详细指标折叠 */
+  (function(){
+    const btn = document.getElementById("btnDetailMetrics");
+    if (!btn) return;
+    btn.addEventListener("click", function(){
+      const wrap = document.getElementById("metricsDetail");
+      const closed = wrap.classList.toggle("hidden");
+      btn.setAttribute("aria-expanded", closed ? "false" : "true");
+      btn.innerHTML = closed ? "查看详细指标 ▾" : "收起详细指标 ▴";
+    });
+  })();
   extractInit();
   $("instSel").addEventListener("change", function(){ renderInstitutionNote(); renderLevels(); });
   $("lvlSel").addEventListener("change", function(){ renderKeysAndItems(); });
@@ -6300,12 +6378,46 @@ init();
         const r = SIMPLE_REFS[key];
         if (!r) return;
         setRef(r.notes, r.meta);
-        refs.forEach(function(x){ x.classList.remove("selected"); });
+        refs.forEach(function(x){ x.classList.remove("selected"); x.setAttribute("aria-selected", "false"); });
         b.classList.add("selected");
+        b.setAttribute("aria-selected", "true");
         setSimpleCur("已选：「" + r.label + "」，可以开始演奏了");
         setSimpleStatus("练习内容已选好，请录音或选择音乐文件", "ok");
       });
     });
+    /* P1-1 简易版参考按钮键盘方向键导航 */
+    (function(){
+      const wrap = document.querySelector("#simpleWrap .simple-grid");
+      if (!wrap) return;
+      wrap.addEventListener("keydown", function(ev){
+        const idx = Array.prototype.indexOf.call(refs, document.activeElement);
+        if (idx < 0) return;
+        let next = -1;
+        if (ev.key === "ArrowRight" || ev.key === "ArrowDown") next = (idx + 1) % refs.length;
+        else if (ev.key === "ArrowLeft" || ev.key === "ArrowUp") next = (idx - 1 + refs.length) % refs.length;
+        else if (ev.key === "Home") next = 0;
+        else if (ev.key === "End") next = refs.length - 1;
+        else return;
+        ev.preventDefault();
+        refs[next].click();
+        refs[next].focus();
+      });
+    })();
+    /* P1-5 特大字档位（localStorage 记忆） */
+    (function(){
+      let big = false;
+      try { big = localStorage.getItem("yinzhen_bigtext") === "1"; } catch (e){}
+      const bigBtn = document.getElementById("sBigText");
+      function applyBig(v){
+        document.getElementById("simpleWrap").classList.toggle("bigtext", v);
+        if (bigBtn){ bigBtn.setAttribute("aria-pressed", v ? "true" : "false"); bigBtn.textContent = v ? "特大字 开" : "特大字 关"; }
+        try { localStorage.setItem("yinzhen_bigtext", v ? "1" : "0"); } catch (e){}
+      }
+      applyBig(big);
+      if (bigBtn) bigBtn.addEventListener("click", function(){
+        applyBig(!document.getElementById("simpleWrap").classList.contains("bigtext"));
+      });
+    })();
     $("sBtnRec").addEventListener("click", simpleRecord);
     $("sBtnFile").addEventListener("click", function(){ $("sFile").click(); });
     $("sBtnListen").addEventListener("click", function(){
