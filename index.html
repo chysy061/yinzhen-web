@@ -314,6 +314,24 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
 .s-verdict.v-good{color:#1E8E5A}.s-verdict.v-warn{color:#C77800}.s-verdict.v-bad{color:#FF3B30}
 .s-listen{background:#fff;border:2px solid #34C759;color:#1E8E5A;font-size:19px}
 .s-listenme{background:#fff;border:2px solid #2f6fd0;color:#2f6fd0;font-size:19px;margin-top:8px}
+/* ============ P0 改进：图形化引导 / 播报 / 打卡 / 声波动画 ============ */
+.simple-step svg{vertical-align:-5px;margin-right:8px;color:var(--acc)}
+.sbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.sbtn svg{flex:0 0 auto}
+.s-verdict svg{vertical-align:-5px;margin-right:7px}
+.s-speak{background:#fff;border:2px solid #AF52DE;color:#AF52DE;font-size:18px;margin:2px 0 8px}
+.s-speakask{margin:0 0 10px;padding:10px 12px;background:#F6EFFC;border:1px solid rgba(175,82,222,.35);border-radius:12px;font-size:15px;color:#6E2FA0;text-align:center;line-height:1.6}
+.s-speakask .mini{font-size:14px;padding:8px 16px;min-height:40px;margin:2px 4px}
+.s-checkin{background:#FF9500;color:#fff;font-size:19px;margin-top:8px}
+.s-checkinmsg{margin-top:8px;font-size:15px;color:#1E8E5A;text-align:center;font-weight:700}
+.s-wave{margin-top:12px;background:#F0F5FF;border-radius:12px;padding:6px;display:none}
+.s-wave canvas{display:block;width:100%;height:96px}
+.s-wave.show{display:block}
+@media (prefers-color-scheme: dark){
+  .s-speak{background:#fff;border-color:#AF52DE;color:#AF52DE}
+  .s-checkin{background:#FF9500;color:#fff}
+  .s-wave{background:#F0F5FF}
+}
 .help-ico:focus-visible{outline:3px solid rgba(0,122,255,.45);outline-offset:3px}
 </style>
 </head>
@@ -337,7 +355,7 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
     </div>
 
     <div class="simple-card">
-      <div class="simple-step"><b>第 1 步</b>　想练习什么？点一个</div>
+      <div class="simple-step"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5v11.5a3.5 3.5 0 1 1-2-3.2"/><path d="M9 5l9-1.5v11.8a3.5 3.5 0 1 1-2-3.2"/><path d="M18 3.5V15"/></svg><b>第 1 步</b>　想练习什么？点一个</div>
       <div class="simple-grid">
         <button class="sbtn s-ref" data-refkey="scale">C 大调音阶</button>
         <button class="sbtn s-ref" data-refkey="twinkle">小星星</button>
@@ -345,27 +363,34 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
         <button class="sbtn s-more" id="sBtnMore">更多内容…</button>
       </div>
       <div class="simple-cur" id="sCurRef" aria-live="polite">还没选练习内容</div>
-      <button class="sbtn s-listen" id="sBtnListen">▶ 先听一听</button>
+      <button class="sbtn s-listen" id="sBtnListen"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h3l5 4V5L7 9H4z"/><path d="M15.5 8.5a4 4 0 0 1 0 7"/></svg>先听一听</button>
     </div>
 
     <div class="simple-card">
-      <div class="simple-step"><b>第 2 步</b>　开始演奏</div>
+      <div class="simple-step"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3.5"/><path d="M8.5 21.5h7"/></svg><b>第 2 步</b>　开始演奏</div>
       <div class="simple-grid">
-        <button class="sbtn s-record" id="sBtnRec">开始录音</button>
-        <button class="sbtn s-file" id="sBtnFile">从手机里选音乐</button>
+        <button class="sbtn s-record" id="sBtnRec"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3.5"/><path d="M8.5 21.5h7"/></svg>开始录音</button>
+        <button class="sbtn s-file" id="sBtnFile"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><circle cx="7" cy="18" r="3"/><circle cx="17" cy="16" r="3"/><path d="M10 18V5l10-2v13"/></svg>从手机里选音乐</button>
       </div>
       <input type="file" id="sFile" style="display:none">
+      <div class="s-wave" id="sWave"><canvas id="sWaveCanvas" height="96"></canvas></div>
       <div class="simple-status" id="sStatus" aria-live="polite">请先选好练习内容，再录音或选文件</div>
     </div>
 
     <div class="simple-card hidden" id="sResultCard">
-      <div class="simple-step"><b>第 3 步</b>　诊断结果</div>
+      <div class="simple-step"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></svg><b>第 3 步</b>　诊断结果</div>
+      <button class="sbtn s-speak" id="sBtnSpeak"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h3l5 4V5L7 9H4z"/><path d="M15.5 8.5a4 4 0 0 1 0 7"/></svg>播报结果</button>
+      <div class="s-speakask hidden" id="sSpeakAsk">以后每次出结果都自动朗读吗？
+        <div><button class="ghost mini" id="sSpeakYes">好的</button><button class="ghost mini" id="sSpeakNo">不要</button></div>
+      </div>
       <div class="s-verdict" id="sVerdict"></div>
       <div class="s-score" id="sScore">--</div>
       <div class="s-score-label">音准分数（越高越准）</div>
       <div class="s-kv" id="sKv"></div>
-      <button class="sbtn s-listenme" id="sBtnListenMe">▶ 听我唱的</button>
-      <button class="sbtn s-again" id="sAgain">再唱一次</button>
+      <button class="sbtn s-listenme" id="sBtnListenMe"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h3l5 4V5L7 9H4z"/><path d="M15.5 8.5a4 4 0 0 1 0 7"/></svg>听我唱的</button>
+      <button class="sbtn s-again" id="sAgain"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9a7 7 0 0 1 12-3l2 2"/><path d="M20 15a7 7 0 0 1-12 3l-2-2"/><path d="M18 3v4h-4"/><path d="M6 21v-4h4"/></svg>再唱一次</button>
+      <button class="sbtn s-checkin" id="sBtnCheckin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.6 5.6 6 .7-4.5 4 1.2 5.9L12 16.6 6.7 19.2l1.2-5.9-4.5-4 6-.7z"/></svg>今天练完啦</button>
+      <div class="s-checkinmsg" id="sCheckinMsg" aria-live="polite"></div>
     </div>
 
     <div style="text-align:center;margin-top:6px">
@@ -5992,6 +6017,7 @@ init();
     const card = $("sResultCard");
     if (!card) return;
     card.classList.remove("hidden");
+    window.LAST_SIMPLE_RESULT = d;
     const sc = d.scores.intonation;
     const el = $("sScore");
     el.textContent = fmtNum(sc, 1);
@@ -5999,7 +6025,11 @@ init();
     const vd = $("sVerdict");
     if (vd){
       vd.className = "s-verdict " + (sc >= 85 ? "v-good" : (sc >= 65 ? "v-warn" : "v-bad"));
-      vd.textContent = sc >= 85 ? "非常棒，继续保持！" : (sc >= 65 ? "还不错，再练几次会更准" : "别灰心，多练几次会更好");
+      const svgGood = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 10h.01"/><path d="M15.5 10h.01"/><path d="M8 15a4.5 4.5 0 0 0 8 0"/></svg>';
+      const svgStar = '<svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M12 3l2.6 5.6 6 .7-4.5 4 1.2 5.9L12 16.6 6.7 19.2l1.2-5.9-4.5-4 6-.7z"/></svg>';
+      const svgSun = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>';
+      const icon = sc >= 85 ? svgGood : (sc >= 65 ? svgStar : svgSun);
+      vd.innerHTML = icon + (sc >= 85 ? "非常棒，继续保持！" : (sc >= 65 ? "还不错，再练几次会更准" : "别灰心，多练几次会更好"));
     }
     const it = d.intonation, cp = d.completeness, sm = d.summary;
 
@@ -6080,6 +6110,31 @@ init();
       "<div style=\"margin-top:5px\">" + speedTxt + "</div>" +
       "<div style=\"margin-top:5px\">" + dynTxt + "</div>" +
       "<div style=\"margin-top:8px;color:#8a8378;font-size:12px\">参考：" + esc(APP.ref.label) + "　演奏：" + esc(APP.audioLabel || "录音/文件") + "</div>";
+    $("sCheckinMsg").textContent = "";
+    try {
+      if (localStorage.getItem("yinzhen_auto_speak") === "1" && ("speechSynthesis" in window)){
+        setTimeout(speakSimpleResult, 500);
+      }
+    } catch (e){}
+  }
+  function speakSimpleResult(){
+    if (!("speechSynthesis" in window)){ setSimpleStatus("当前浏览器不支持语音播报", "err"); return; }
+    const d = window.LAST_SIMPLE_RESULT;
+    if (!d){ setSimpleStatus("还没有结果可播报", "err"); return; }
+    const sc = d.scores.intonation;
+    const vdTxt = sc >= 85 ? "非常棒，继续保持！" : (sc >= 65 ? "还不错，再练几次会更准" : "别灰心，多练几次会更好");
+    let txt = "音准 " + fmtNum(sc, 1) + " 分，" + vdTxt;
+    if (d.intonation && d.intonation.hit_rate !== null && d.intonation.hit_rate !== undefined){
+      txt += "。百分之" + fmtNum(d.intonation.hit_rate, 1) + "的音都是准的";
+    }
+    txt += "。加油练习，明天会更棒。";
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(txt);
+      u.lang = "zh-CN"; u.rate = 1.0; u.pitch = 1.0;
+      speechSynthesis.speak(u);
+      setSimpleStatus("正在朗读结果…", "ok");
+    } catch (e){ setSimpleStatus("播报失败：" + e.message, "err"); }
   }
   function simpleRun(){
     if (!APP.ref || !APP.ref.notes.length){ setSimpleStatus("请先点第 1 步选好练习内容", "err"); return; }
@@ -6089,6 +6144,43 @@ init();
       const d = runAnalysis("简易模式");
       if (d){ setSimpleStatus("分析完成，请看下面的结果", "ok"); setSimpleResult(d); }
     } catch (e){ setSimpleStatus("分析失败：" + e.message, "err"); }
+  }
+  function ckStreak(arr, dateStr){
+    const set = new Set(arr.map(x => String(x.d || "").slice(0, 10)));
+    const pad = n => (n < 10 ? "0" : "") + n;
+    const d = new Date(dateStr + "T00:00:00");
+    let n = 0;
+    while (true){
+      const key = d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+      if (!set.has(key)) break;
+      n++;
+      d.setDate(d.getDate() - 1);
+    }
+    return n;
+  }
+  function simpleCheckin(){
+    const msg = $("sCheckinMsg");
+    if (!msg) return;
+    const arr = ckLoad();
+    const now = new Date();
+    const pad = n => (n < 10 ? "0" : "") + n;
+    const dateStr = now.getFullYear() + "-" + pad(now.getMonth() + 1) + "-" + pad(now.getDate());
+    const done = arr.some(x => String(x.d || "").indexOf(dateStr) === 0);
+    let text;
+    if (done){
+      text = "今天已打过卡啦";
+    } else {
+      const secs = (APP.audio && APP.audio.data) ? APP.audio.data.length / APP.audio.sr : 0;
+      const min = secs > 0 ? Math.max(1, Math.round(secs / 60)) : 0;
+      arr.push({ d: dateStr + " " + pad(now.getHours()) + ":" + pad(now.getMinutes()),
+                 t: APP.ref ? APP.ref.label : "简易版练习", min: min, g: "", n: "简易版打卡" });
+      ckSave(arr);
+      text = "今天已打卡，明天继续";
+    }
+    const streak = ckStreak(ckLoad(), dateStr);
+    if (streak >= 7) text += "（连续打卡 7 天，太棒啦！）";
+    else if (streak >= 3) text += "（连续打卡 3 天，继续保持！）";
+    msg.textContent = text;
   }
   function waitAudio(cb, tries){
     tries = tries || 0;
@@ -6107,6 +6199,52 @@ init();
       simpleRun();
     });
   }
+  function stopSimpleWave(){
+    const w = window.SIMPLE_WAVE;
+    if (!w) return;
+    if (w.raf) cancelAnimationFrame(w.raf);
+    try { if (w.src) w.src.disconnect(); } catch (e){}
+    try { if (w.ctx && w.ctx.state !== "closed") w.ctx.close(); } catch (e){}
+    window.SIMPLE_WAVE = null;
+    const box = $("sWave");
+    if (box) box.classList.remove("show");
+  }
+  function startSimpleWave(stream){
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      const ctx = new AC();
+      const src = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 512;
+      src.connect(analyser);
+      const box = $("sWave"), cvs = $("sWaveCanvas");
+      if (!box || !cvs) return;
+      if (cvs.clientWidth > 0) cvs.width = cvs.clientWidth;
+      box.classList.add("show");
+      window.SIMPLE_WAVE = { ctx: ctx, src: src, analyser: analyser, raf: 0, t0: Date.now() };
+      function draw(){
+        const w = window.SIMPLE_WAVE;
+        if (!w || !w.analyser) return;
+        const g = cvs.getContext("2d");
+        const wpx = cvs.width || 600, hpx = cvs.height || 96;
+        const data = new Uint8Array(w.analyser.frequencyBinCount);
+        w.analyser.getByteTimeDomainData(data);
+        g.clearRect(0, 0, wpx, hpx);
+        g.beginPath();
+        for (let i = 0; i < wpx; i++){
+          const idx = Math.min(data.length - 1, Math.floor(i * data.length / wpx));
+          const v = data[idx] / 128 - 1;
+          const y = hpx / 2 + v * (hpx * 0.42);
+          if (i === 0) g.moveTo(i, y); else g.lineTo(i, y);
+        }
+        g.strokeStyle = "#007AFF"; g.lineWidth = 2.5; g.lineJoin = "round"; g.lineCap = "round";
+        g.stroke();
+        w.raf = requestAnimationFrame(draw);
+      }
+      draw();
+    } catch (e){ /* 波形只是辅助反馈，失败不影响录音 */ }
+  }
   async function simpleRecord(){
     const btn = $("sBtnRec");
     if (window.SIMPLE_REC && SIMPLE_REC.recording){ SIMPLE_REC.recorder.stop(); return; }
@@ -6122,24 +6260,27 @@ init();
       const stream = await navigator.mediaDevices.getUserMedia({ audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:false } });
       const mr = new MediaRecorder(stream);
       const chunks = [];
-      window.SIMPLE_REC = { recording:true, recorder:mr, chunks:chunks, stream:stream };
+      window.SIMPLE_REC = { recording:true, recorder:mr, chunks:chunks, stream:stream, t0: Date.now() };
+      startSimpleWave(stream);
       mr.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
       mr.onstop = async function(){
         window.SIMPLE_REC.recording = false;
         stream.getTracks().forEach(function(t){ t.stop(); });
         btn.textContent = "开始录音";
+        stopSimpleWave();
         try {
           const blob = new Blob(chunks, { type: chunks[0] ? chunks[0].type : "audio/webm" });
           const f = new File([blob], "recording.webm", { type: blob.type });
           APP.audio = await decodeAudioFile(f);
-          APP.audioLabel = "录音（" + fmtNum(APP.audio.data.length / APP.audio.sr, 2) + " 秒）";
-          setSimpleStatus("录音完成，正在分析…", "ok");
+          const secs = APP.audio.data.length / APP.audio.sr;
+          APP.audioLabel = "录音（" + fmtNum(secs, 2) + " 秒）";
+          setSimpleStatus("已录到 " + fmtNum(secs, 1) + " 秒声音，正在分析…", "ok");
           simpleRun();
         } catch (e){ setSimpleStatus("录音处理失败：" + e.message, "err"); }
       };
       mr.start();
       btn.textContent = "停止录音";
-      setSimpleStatus("正在录音…再点一次「停止录音」", "");
+      setSimpleStatus("正在录音…看到蓝色声波在动就说明录上了，再点一次「停止录音」", "");
     } catch (e){ setSimpleStatus("无法录音：" + e.message, "err"); }
   }
   function switchUI(mode){
@@ -6217,10 +6358,31 @@ init();
     });
     $("sAgain").addEventListener("click", function(){
       APP.audio = null; APP.audioLabel = null; APP.result = null;
+      stopSimpleWave();
       $("sResultCard").classList.add("hidden");
       setSimpleCur(APP.ref ? "已选：「" + APP.ref.label + "」" : "还没选练习内容");
       setSimpleStatus(APP.ref ? "已清空，请重新录音或从手机里选音乐" : "请先选好练习内容", "");
     });
+    $("sBtnSpeak").addEventListener("click", function(){
+      try {
+        const asked = localStorage.getItem("yinzhen_auto_speak");
+        if (asked === null || asked === undefined){
+          $("sSpeakAsk").classList.remove("hidden");
+        }
+      } catch (e){}
+      speakSimpleResult();
+    });
+    $("sSpeakYes").addEventListener("click", function(){
+      try { localStorage.setItem("yinzhen_auto_speak", "1"); } catch (e){}
+      $("sSpeakAsk").classList.add("hidden");
+      setSimpleStatus("已开启：以后每次出结果都会自动朗读", "ok");
+    });
+    $("sSpeakNo").addEventListener("click", function(){
+      try { localStorage.setItem("yinzhen_auto_speak", "0"); } catch (e){}
+      $("sSpeakAsk").classList.add("hidden");
+      setSimpleStatus("好的，只在您点「播报结果」时朗读", "ok");
+    });
+    $("sBtnCheckin").addEventListener("click", simpleCheckin);
     $("sBtnMore").addEventListener("click", function(){ switchUI("full"); switchMode("piece"); });
     $("sBtnMore2").addEventListener("click", function(){ switchUI("full"); });
     $("btnGoSimple").addEventListener("click", function(){ switchUI("simple"); });
