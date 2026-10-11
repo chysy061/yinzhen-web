@@ -310,7 +310,7 @@
       <div class="row">
         <div class="field dropzone" id="scoreDrop">
           <label>参考谱文件</label>
-          <input type="file" id="scoreFile" accept=".musicxml,.xml,.mid,.midi,.txt,.csv,.tsv">
+          <input type="file" id="scoreFile">
           <div class="dropHint">也可以把乐谱文件直接拖到这里</div>
         </div>
         <div class="field">
@@ -377,7 +377,7 @@
       <div class="row">
         <div class="field dropzone" id="extractDrop" style="flex:2 1 240px">
           <label>音频文件</label>
-          <input type="file" id="extractFile" accept="audio/*">
+          <input type="file" id="extractFile">
           <div class="dropHint">也可以把音频文件直接拖到这里（wav / mp3 / m4a / ogg 等）</div>
         </div>
         <div class="field">
@@ -584,7 +584,7 @@
       <button id="btnRec" class="ghost">开始录音</button>
       <button id="btnDemo" class="ghost">生成无参考测试音</button>
       <button id="btnUploadSelftest" class="ghost" title="自动检查所有上传入口与解码链路">上传自检</button>
-      <input type="file" id="file" accept="audio/*" class="hidden">
+      <input type="file" id="file" class="hidden">
     </div>
     <div class="status" id="status">待机。先选好练习内容，再上传或录音。</div>
   </div>
@@ -919,13 +919,20 @@ function segmentNotes(frames, refA, tolCents){
       const med = cs[Math.floor(cs.length / 2)];
       const m = cs.reduce((a,b) => a + b, 0) / cs.length;
       const sd = Math.sqrt(cs.reduce((a,b) => a + (b-m)*(b-m), 0) / cs.length);
+      const rs = cur.frames.map(f => f.rms || 0).filter(v => v > 0);
+      const rmsAvg = rs.length ? rs.reduce((a,b) => a + b, 0) / rs.length : 0;
+      const rmsPeak = rs.length ? Math.max.apply(null, rs) : 0;
+      const rmsSd = rs.length ? Math.sqrt(rs.reduce((a,b) => a + (b - rmsAvg) * (b - rmsAvg), 0) / rs.length) : 0;
       notes.push({
         t0: cur.t0, t1: cur.t1,
         cents: med,
         jitter: sd,
         midi: cur.midi,
         name: midiToName(cur.midi),
-        dur: cur.t1 - cur.t0
+        dur: cur.t1 - cur.t0,
+        rms_avg: Number(rmsAvg.toFixed(5)),
+        rms_peak: Number(rmsPeak.toFixed(5)),
+        rms_cv: rmsAvg > 1e-6 ? Number((rmsSd / rmsAvg).toFixed(3)) : 0
       });
     }
     cur = null;
@@ -936,16 +943,16 @@ function segmentNotes(frames, refA, tolCents){
     const midi = 69 + 12 * Math.log2(f.f0 / refA);
     const cents = 100 * (midi - Math.round(midi));
     if (!cur){
-      cur = { t0:f.t, t1:f.t, frames:[{cents:cents}], midi:Math.round(midi) };
+      cur = { t0:f.t, t1:f.t, frames:[{cents:cents, rms:f.rms}], midi:Math.round(midi) };
     } else {
       const drift = Math.abs(cents - cur.frames[cur.frames.length-1].cents);
       const sameNote = Math.round(midi) === cur.midi;
       if (drift < ENGINE_CFG.segment_drift_max && sameNote){
-        cur.frames.push({cents:cents});
+        cur.frames.push({cents:cents, rms:f.rms});
         cur.t1 = f.t;
       } else {
         flush();
-        cur = { t0:f.t, t1:f.t, frames:[{cents:cents}], midi:Math.round(midi) };
+        cur = { t0:f.t, t1:f.t, frames:[{cents:cents, rms:f.rms}], midi:Math.round(midi) };
       }
     }
   }
@@ -2843,7 +2850,10 @@ function alignSequences(ref, perf, kwargs){
         ref_midi: Math.round(rn.midi),
         perf_cents_native: Number(pn.cents || 0.0),
         dur_ref: Number(rn.dur_sec || 0.0),
-        dur_perf: Number(pn.dur || 0.0)
+        dur_perf: Number(pn.dur || 0.0),
+        energy: Number(pn.rms_avg || 0),
+        energy_peak: Number(pn.rms_peak || 0),
+        energy_cv: Number(pn.rms_cv || 0)
       });
       i--; j--;
     } else if (i > 0 && Math.abs(D[i*W+j] - (D[(i-1)*W + j] + gap)) < eps){
@@ -5753,17 +5763,17 @@ init();
     scale: {
       label: "C 大调音阶",
       notes: (function(){ const n=[]; const m=[60,62,64,65,67,69,71,72,71,69,67,65,64,62,60]; for(let i=0;i<m.length;i++) n.push({midi:m[i], dur:0.5}); return n; })(),
-      meta: { kind:"scale", source:"内置规则生成（公版音阶，非任何机构要求）" }
+      meta: { kind:"scale", key_label:"C 大调音阶", source:"内置规则生成（公版音阶，非任何机构要求）" }
     },
     twinkle: {
       label: "小星星",
       notes: (function(){ const s="60 60 67 67 69 69 67 65 65 64 64 62 62 60"; const a=s.split(" "); const n=[]; for(let i=0;i<a.length;i++){ n.push({midi:+a[i], dur:(i===6||i===13)?1:0.5}); } return n; })(),
-      meta: { kind:"piece", source:"内置公版童谣（仅供练习演示）" }
+      meta: { kind:"piece", key_label:"小星星", source:"内置公版童谣（仅供练习演示）" }
     },
     ode: {
       label: "欢乐颂",
       notes: (function(){ const s="64 64 65 67 67 65 64 62 60 60 62 64 64 62 62"; const a=s.split(" "); const n=[]; for(let i=0;i<a.length;i++){ n.push({midi:+a[i], dur:(i===12||i===13||i===14)?1:0.5}); } return n; })(),
-      meta: { kind:"piece", source:"贝多芬《第九交响曲》主题（公有领域，仅供练习演示）" }
+      meta: { kind:"piece", key_label:"欢乐颂", source:"贝多芬《第九交响曲》主题（公有领域，仅供练习演示）" }
     }
   };
   function setSimpleStatus(msg, cls){
@@ -5783,12 +5793,83 @@ init();
     el.textContent = fmtNum(sc, 1);
     el.className = "s-score " + (sc >= 85 ? "" : (sc >= 65 ? "warn" : "bad"));
     const it = d.intonation, cp = d.completeness, sm = d.summary;
+
+    const loc = (m, b, idx) => {
+      if (m !== null && m !== undefined && b !== null && b !== undefined) return "第" + m + "小节第" + b + "拍";
+      if (m !== null && m !== undefined) return "第" + m + "小节";
+      return "第" + (idx + 1) + "个音";
+    };
+
+    // 音符问题：错音 + 漏音
+    const noteParts = [];
+    if (sm.wrong > 0){
+      const wl = d.wrong_notes.slice(0, 5).map(function(w, i){
+        const dir = w.semitone_diff > 0 ? "偏高" : "偏低";
+        return "　• " + loc(w.measure, w.beat, i) + "：应吹 <b>" + esc(w.expected) + "</b>，实际 <b>" + esc(w.played) + "</b>（" + dir + " " + Math.abs(w.semitone_diff) + " 个半音）";
+      }).join("<br>");
+      noteParts.push("错音 " + sm.wrong + " 处：" + wl + (sm.wrong > 5 ? "<br>　…其余 " + (sm.wrong - 5) + " 处见完整报告" : ""));
+    }
+    if (sm.missing > 0){
+      const ml = d.missing_notes.slice(0, 5).map(function(x, i){
+        return "　• " + loc(x.measure, x.beat, i) + "：<b>" + esc(x.expected) + "</b> 没吹出来或没被检测到";
+      }).join("<br>");
+      noteParts.push("漏音/未检出 " + sm.missing + " 处：" + ml + (sm.missing > 5 ? "<br>　…其余 " + (sm.missing - 5) + " 处见完整报告" : ""));
+    }
+    if (noteParts.length) noteParts.push("　小提示：漏音也可能只是音量太小没被系统检测到，可以靠近麦克风再录一次复核。");
+
+    // 节奏
+    const rhy = d.rhythm;
+    let rhythmTxt = "节奏：<b>" + (rhy.stable ? "整体稳定" : "偏不稳") + "</b>";
+    if (rhy.onset_mae_ms !== null && rhy.onset_mae_ms !== undefined){
+      const om = rhy.onset_mae_ms;
+      const desc = om <= 60 ? "起音时机较准" : (om <= 120 ? "起音时机有偏差（有的音早、有的音晚）" : "起音时机偏差较明显（对不上拍）");
+      rhythmTxt += "（平均起音偏差 <b>" + fmtNum(om, 1) + "</b> 毫秒，" + desc + "）";
+    }
+    if (rhy.ioi_ratio_error !== null && rhy.ioi_ratio_error !== undefined && !rhy.stable){
+      rhythmTxt += "；<br>　时值长短不稳定（相邻音时值比误差 <b>" + fmtNum(rhy.ioi_ratio_error * 100, 1) + "%</b>），容易忽快忽慢";
+    }
+    if (d.reference && d.reference.rhythm_caveat){
+      rhythmTxt += "。<br>　注：本曲参考为等时值骨架，这里衡量的是您演奏的稳定程度，非原曲节奏对错。";
+    }
+
+    // 速度
+    const tr = d.alignment ? d.alignment.tempo_ratio : null;
+    let speedTxt = "速度：<b>未检测到</b>";
+    if (tr && tr > 0){
+      const pct = Math.round((tr - 1) * 100);
+      const desc = Math.abs(pct) <= 3 ? "与参考速度基本一致" : (pct > 0 ? "整体偏快约 " + pct + "%" : "整体偏慢约 " + Math.abs(pct) + "%");
+      speedTxt = "速度：<b>" + desc + "</b>（约为参考的 " + fmtNum(tr, 2) + " 倍）";
+    }
+
+    // 强弱（基于演奏能量）
+    const es = (d._matched || []).map(m => m.energy || 0).filter(v => v > 0);
+    let dynTxt = "强弱：<b>未检测到足够的强弱信息</b>";
+    if (es.length >= 3){
+      const arr = es.slice().sort((a, b) => a - b);
+      const median = arr[Math.floor(arr.length / 2)];
+      const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
+      const sd = Math.sqrt(arr.reduce((a, b) => a + (b - mean) * (b - mean), 0) / arr.length);
+      const cv = mean > 1e-6 ? sd / mean : 0;
+      const desc = cv < 0.35 ? "力度整体平稳" : (cv < 0.7 ? "力度有起伏（部分音偏强或偏弱）" : "力度起伏较大（忽强忽弱明显）");
+      dynTxt = "强弱：<b>" + desc + "</b>";
+      const weak = (d._matched || []).filter(m => (m.energy || 0) > 0 && (m.energy || 0) < 0.4 * median);
+      if (weak.length){
+        dynTxt += "。偏弱的音：" + weak.slice(0, 3).map(function(m, i){
+          return "<b>" + esc(m.played) + "</b>（" + loc(m.measure, m.beat, i) + "）";
+        }).join("、") + (weak.length > 3 ? " 等" + weak.length + " 处" : "");
+        dynTxt += "，建议这些音加强气息支撑";
+      }
+    }
+
     $("sKv").innerHTML =
-      "音准命中率：<b>" + fmtNum(it.hit_rate, 1) + "%</b>（好 " + it.good + " / 警示 " + it.warn + " / 不合格 " + it.bad + "）<br>" +
-      "平均偏差：<b>" + fmtNum(it.mae_cents, 2) + "</b> 音分<br>" +
-      "错音：<b>" + sm.wrong + "</b> 处　漏音/未检出：<b>" + sm.missing + "</b> 处<br>" +
-      "完整性：<b>" + fmtNum(cp.coverage * 100, 1) + "%</b>　节奏：<b>" + (d.rhythm.stable ? "稳定" : "偏不稳") + "</b><br>" +
-      "参考：" + esc(APP.ref.label) + "　演奏：" + esc(APP.audioLabel || "录音/文件");
+      "音准命中率：<b>" + fmtNum(it.hit_rate, 1) + "%</b>（好 " + it.good + " / 警示 " + it.warn + " / 不合格 " + it.bad + "）　平均偏差：<b>" + fmtNum(it.mae_cents, 2) + "</b> 音分<br>" +
+      "完整性：<b>" + fmtNum(cp.coverage * 100, 1) + "%</b>（漏 " + sm.missing + " / 多 " + sm.extra + "）<br>" +
+      "<div style=\"margin-top:6px;padding-top:6px;border-top:1px dashed #d0c8b8\"><b>演奏问题明细</b></div>" +
+      (noteParts.length ? "<div style=\"margin-top:3px\">" + noteParts.join("<br>") + "</div>" : "<div style=\"margin-top:3px\">音符：<b>没有错音也没有漏音</b>，音都吹对了</div>") +
+      "<div style=\"margin-top:5px\">" + rhythmTxt + "</div>" +
+      "<div style=\"margin-top:5px\">" + speedTxt + "</div>" +
+      "<div style=\"margin-top:5px\">" + dynTxt + "</div>" +
+      "<div style=\"margin-top:8px;color:#8a8378;font-size:12px\">参考：" + esc(APP.ref.label) + "　演奏：" + esc(APP.audioLabel || "录音/文件") + "</div>";
   }
   function simpleRun(){
     if (!APP.ref || !APP.ref.notes.length){ setSimpleStatus("请先点第 1 步选好练习内容", "err"); return; }
