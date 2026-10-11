@@ -6,8 +6,11 @@
 <title>音准诊断原型 v0.7 适老简易版</title>
 <style>
   :root{
-    --bg:#0f1115; --panel:#171a21; --line:#262b36; --fg:#e8eaf0; --dim:#8b93a7;
-    --ok:#3ddc97; --warn:#ffb454; --bad:#ff5c7a; --acc:#5b9dff;
+    --bg:#F2F2F7; --panel:#FFFFFF; --line:rgba(60,60,67,.14); --fg:#1C1C1E; --dim:#6E6E73;
+    --ok:#34C759; --warn:#FF9F0A; --bad:#FF3B30; --acc:#007AFF;
+    --card-shadow:0 1px 3px rgba(0,0,0,.05),0 6px 18px rgba(0,0,0,.04);
+    --radius:12px; --radius-btn:10px; --touch-h:44px;
+    --font-apple:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Helvetica Neue",sans-serif;
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--fg);
@@ -146,6 +149,151 @@
   .s-kv{background:#242b39}
 }
 @media (max-width:480px){ .simple-title{font-size:26px} .sbtn{font-size:18px;padding:15px 8px} }
+/* ============================================================
+   Apple iOS/macOS 风格覆盖层（仅样式，不动 DOM / JS / id / 流程）
+   浅灰背景 + 白色分组卡片 + 苹果蓝 #007AFF + 8px 倍率间距
+   ============================================================ */
+body{background:var(--bg);color:var(--fg);font:15px/1.6 var(--font-apple);-webkit-font-smoothing:antialiased}
+.wrap{max-width:960px;margin:0 auto;padding:16px 16px 56px}
+button,input,select,textarea{font-family:var(--font-apple)}
+h1{font-size:22px;font-weight:700;letter-spacing:-.2px}
+h2{font-size:17px;font-weight:600}
+h3{font-size:15px;font-weight:600;color:var(--fg)}
+.sub{font-size:13px;color:var(--dim)}
+label{font-size:13px;font-weight:500;color:var(--dim);margin-bottom:6px}
+/* 卡片：白底、12px 圆角、柔和阴影、无重边框 */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+      box-shadow:var(--card-shadow);padding:20px;margin-bottom:16px}
+/* 主按钮 */
+button{background:var(--acc);color:#fff;border:0;border-radius:var(--radius-btn);
+       padding:11px 20px;font-size:16px;font-weight:600;min-height:var(--touch-h);
+       cursor:pointer;transition:opacity .12s,transform .05s;-webkit-tap-highlight-color:transparent}
+button:hover{opacity:.9}
+button:active{transform:scale(.97)}
+button.ghost{background:#F2F3F5;color:var(--acc);border:1px solid rgba(60,60,67,.10);font-weight:500}
+button.mini{padding:8px 14px;font-size:13.5px;min-height:36px;border-radius:8px}
+button:disabled{opacity:.4;cursor:not-allowed}
+/* 表单控件 */
+select,input[type=number]{background:#fff;color:var(--fg);border:1px solid rgba(60,60,67,.16);
+       border-radius:10px;padding:10px 12px;font-size:15px;min-height:44px;-webkit-appearance:none;
+       appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--dim) 50%),linear-gradient(135deg,var(--dim) 50%,transparent 50%);
+       background-position:calc(100% - 16px) 20px,calc(100% - 12px) 20px;background-size:5px 5px;background-repeat:no-repeat;padding-right:32px}
+select:focus,input[type=number]:focus,textarea:focus{border-color:var(--acc);outline:none;box-shadow:0 0 0 3px rgba(0,122,255,.12)}
+input[type=file]{font-size:14px;color:var(--dim);min-height:44px;display:block;width:100%}
+input[type=file]::file-selector-button{background:#F2F3F5;color:var(--acc);border:1px solid rgba(60,60,67,.10);border-radius:8px;padding:9px 14px;margin-right:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font-apple)}
+textarea{background:#fff;color:var(--fg);border:1px solid rgba(60,60,67,.16);border-radius:10px;
+       padding:12px;font:14px/1.6 var(--font-apple);min-height:44px}
+/* 状态文本 */
+.status{font-size:14px;color:var(--dim)}
+.status.err{color:var(--bad)} .status.ok{color:var(--ok)}
+.ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)} .acc{color:var(--acc)}
+/* 表格：分割线分组，无重边框 */
+table{font-size:14px}
+th,td{padding:10px 12px;border-bottom:1px solid rgba(60,60,67,.12)}
+th{color:var(--dim);font-weight:500;font-size:13px}
+/* 指标卡 */
+.metric{background:#F9F9FB;border:1px solid rgba(60,60,67,.10);border-radius:12px;padding:14px}
+.metric .v{font-size:24px;font-weight:700;letter-spacing:.3px}
+.metric .k{font-size:13px;color:var(--dim)}
+/* 画布与代码块 */
+canvas{background:#F4F4F8;border:1px solid rgba(60,60,67,.12);border-radius:12px}
+pre{background:#F9F9FB;border:1px solid rgba(60,60,67,.10);border-radius:12px;padding:14px;color:#3A3A3C}
+/* 标签与说明 */
+.tag{background:#F2F3F5;border:1px solid transparent;color:var(--dim);font-size:12px}
+.note{font-size:13px;color:var(--dim)}
+.note[data-live="ok"]{color:#1E8E5A} .note[data-live="err"]{color:var(--bad)} .note[data-live="warn"]{color:#C77800}
+/* 帮助图标 */
+.help-ico{background:var(--acc);width:24px;height:24px;font-size:15px}
+.help-body{background:#F9F9FB;border:1px solid rgba(60,60,67,.10);border-radius:12px;color:var(--dim)}
+/* 步骤标题 */
+.step-title{font-size:20px;font-weight:700;letter-spacing:-.2px}
+.step-title .step-num{background:var(--acc)}
+/* 分段控件（模式切换）：iOS 分段风格 */
+.tabs{border-bottom:1px solid rgba(60,60,67,.10);padding-bottom:12px;gap:8px}
+.tab{background:#F2F3F5;color:var(--dim);border:1px solid rgba(60,60,67,.08);border-radius:10px;
+     font-weight:500;min-height:44px;padding:10px 14px}
+.tab.active{background:var(--acc);color:#fff;border-color:var(--acc);font-weight:600;box-shadow:0 2px 8px rgba(0,122,255,.25)}
+.mode-big .tab{padding:12px 10px;font-size:17px;font-weight:700;min-height:64px;border-radius:12px}
+.mode-big .tab span{font-size:12.5px;font-weight:400;color:inherit;opacity:.8}
+/* chips */
+.chips label{background:#F2F3F5;border:1px solid rgba(60,60,67,.08);color:var(--fg);border-radius:20px;padding:9px 14px;font-size:14px}
+.chips input{accent-color:var(--acc)}
+/* 待办提示 */
+.pending{background:#FFF8EC;border:1px solid rgba(255,159,10,.35);border-left:3px solid var(--warn);color:#7A5A00;border-radius:10px}
+/* 参考序列状态条 */
+.refbar{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--acc);
+        border-radius:12px;box-shadow:var(--card-shadow);padding:10px 14px;margin:0 0 16px}
+.refbar.empty{border-left-color:var(--warn)}
+.refbar .rb-text{color:var(--dim)} .refbar .rb-text b{color:var(--fg)}
+/* 拖拽上传 */
+.dropzone{border:1.5px dashed rgba(0,122,255,.45);border-radius:12px;background:#F9FBFE;padding:14px;min-height:72px}
+.dropzone.dragover{border-color:var(--acc);background:#EAF3FF}
+.dropHint{font-size:12.5px;color:var(--dim)}
+/* 警告行/键值 */
+.kv{font-size:13.5px;color:var(--dim)} .kv b{color:var(--fg)}
+.warnline{color:var(--warn)}
+/* ============ 简易适老版：iOS 化 ============ */
+#simpleWrap{max-width:640px;padding:16px 16px 48px}
+.simple-title{font-size:30px;font-weight:800;text-align:center;margin:14px 0 6px;color:var(--fg);letter-spacing:-.5px}
+.simple-sub{font-size:16px;text-align:center;color:var(--dim);margin-bottom:20px}
+.simple-card{background:var(--panel);border:1px solid rgba(60,60,67,.10);border-radius:16px;
+             padding:20px 18px;margin-bottom:16px;box-shadow:var(--card-shadow)}
+.simple-step{font-size:16px;font-weight:700;color:var(--fg);margin-bottom:14px}
+.simple-step b{color:var(--acc);font-size:17px}
+.simple-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sbtn{display:block;width:100%;padding:16px 10px;font-size:19px;font-weight:700;border-radius:12px;
+      background:#F2F3F5;color:var(--fg);font-family:inherit;min-height:56px}
+.sbtn.s-ref{background:#F0F5FF;border:1px solid rgba(0,122,255,.25);color:var(--acc)}
+.sbtn.s-ref.selected{background:var(--acc);color:#fff;border-color:var(--acc);box-shadow:0 2px 8px rgba(0,122,255,.3)}
+.sbtn.s-record{background:var(--acc);color:#fff;font-size:20px;box-shadow:0 4px 14px rgba(0,122,255,.3)}
+.sbtn.s-file{background:#fff;border:2px solid var(--acc);color:var(--acc);font-size:20px}
+.sbtn.s-again{background:var(--ok);color:#fff;font-size:19px;margin-top:8px}
+.sbtn.s-more{background:transparent;border:1px solid rgba(60,60,67,.18);color:var(--dim);font-size:15px;padding:12px}
+.simple-cur{margin-top:12px;font-size:16px;color:var(--acc);font-weight:700;text-align:center;background:#F0F5FF;border-radius:12px;padding:12px}
+.simple-status{margin-top:12px;font-size:16px;color:var(--dim);text-align:center;background:#F2F3F5;border-radius:12px;padding:12px;min-height:28px}
+.simple-status.ok{color:#1E8E5A;background:#ECF9F1}
+.simple-status.err{color:var(--bad);background:#FDF0EE}
+.s-score{font-size:52px;font-weight:800;color:var(--acc);text-align:center;line-height:1.1}
+.s-score.bad{color:var(--bad)} .s-score.warn{color:var(--warn)}
+.s-score-label{font-size:15px;color:var(--dim);text-align:center;margin-bottom:10px}
+.s-kv{font-size:16px;color:var(--fg);background:#F9F9FB;border-radius:12px;padding:14px;line-height:1.8}
+.s-kv b{color:var(--bad)}
+/* ============ 强制浅色 iOS 风格（覆盖 prefers-color-scheme:dark 段） ============ */
+@media (prefers-color-scheme: dark){
+  :root{--bg:#F2F2F7;--panel:#FFFFFF;--line:rgba(60,60,67,.14);--fg:#1C1C1E;--dim:#6E6E73}
+  .simple-card{background:#fff;border-color:rgba(60,60,67,.10)}
+  .simple-title,.simple-step,.s-kv{color:#1C1C1E}
+  .simple-sub{color:#6E6E73}
+  .sbtn.s-ref{background:#F0F5FF;border-color:rgba(0,122,255,.25);color:#007AFF}
+  .sbtn.s-ref.selected{background:#007AFF;border-color:#007AFF;color:#fff}
+  .sbtn.s-file{background:#fff;border-color:#007AFF;color:#007AFF}
+  .simple-cur{background:#F0F5FF;color:#007AFF}
+  .simple-status{background:#F2F3F5;color:#6E6E73}
+  .simple-status.ok{background:#ECF9F1;color:#1E8E5A}
+  .simple-status.err{background:#FDF0EE;color:#FF3B30}
+  .s-kv{background:#F9F9FB;color:#1C1C1E}
+  .pending{background:#FFF8EC;color:#7A5A00}
+  .help-ico{background:#007AFF}
+  .metric{background:#F9F9FB}
+  pre{background:#F9F9FB;color:#3A3A3C}
+}
+/* 窄屏（390px 级）微调：8px 倍率间距 + 触控高度达标 */
+@media (max-width:640px){
+  .wrap{padding:12px 12px 48px}
+  .card{padding:16px}
+  .row{gap:10px}
+  .field{flex:1 1 100%;min-width:0}
+  button{padding:12px 16px;font-size:15.5px;min-height:44px}
+  button.mini{padding:8px 12px;font-size:13px;min-height:36px}
+  .tabs{flex-wrap:wrap;gap:6px}
+  .tab{flex:1 1 45%;min-height:44px}
+  .refbar{position:static}
+  canvas{height:180px}
+  table{font-size:13px} th,td{padding:8px 8px}
+  .simple-card{padding:16px}
+  .simple-title{font-size:28px}
+  .sbtn{min-height:56px}
+}
 </style>
 </head>
 <body>
