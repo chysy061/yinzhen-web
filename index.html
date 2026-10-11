@@ -186,6 +186,11 @@ textarea{background:#fff;color:var(--fg);border:1px solid rgba(60,60,67,.16);bor
 /* 状态文本 */
 .status{font-size:14px;color:var(--dim)}
 .status.err{color:var(--bad)} .status.ok{color:var(--ok)}
+.ref-guide{margin-top:14px;padding:14px;background:#F0F7FF;border:1px solid rgba(0,122,255,.35);border-radius:12px}
+.ref-guide .rg-tip{font-size:15px;color:#0056A6;font-weight:600;margin-bottom:10px;line-height:1.5}
+.ref-guide .rg-btns{display:flex;flex-direction:column;gap:8px}
+.ref-guide .rg-btn{display:block;width:100%;padding:14px 10px;font-size:16px;font-weight:700;border:none;border-radius:10px;cursor:pointer;background:#007AFF;color:#fff;font-family:inherit}
+.ref-guide .rg-btn.alt{background:#fff;color:#007AFF;border:1px solid #007AFF}
 .ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)} .acc{color:var(--acc)}
 /* 表格：分割线分组，无重边框 */
 table{font-size:14px}
@@ -735,6 +740,14 @@ pre{background:#F9F9FB;border:1px solid rgba(60,60,67,.10);border-radius:12px;pa
       <input type="file" id="file" class="hidden">
     </div>
     <div class="status" id="status">待机。先选好练习内容，再上传或录音。</div>
+    <div class="ref-guide hidden" id="refGuide">
+      <div class="rg-tip">音乐已就绪！还差练习内容：点下面任一按钮即可载入参考序列，马上开始诊断。</div>
+      <div class="rg-btns">
+        <button type="button" class="rg-btn" id="rgScale">一键生成音阶参考</button>
+        <button type="button" class="rg-btn alt" id="rgTwinkle">载入内置曲（小星星）</button>
+        <button type="button" class="rg-btn alt" id="rgOde">载入内置曲（欢乐颂）</button>
+      </div>
+    </div>
   </div>
 
   <!-- ============ 3. 诊断概览 ============ -->
@@ -3575,6 +3588,7 @@ function clearRef(){
   if ($("extractOctInfo")) $("extractOctInfo").textContent = "当前：原样";
   renderRefBar();
   renderPendingCard();
+  if (APP.audio && APP.audio.data && APP.audio.data.length) show("refGuide", true);
   setStatus("已清空当前参考序列，诊断功能在载入新参考序列前不可用。", "ok");
 }
 
@@ -4361,6 +4375,7 @@ function setRef(notes, meta, label){
   APP.ref = { notes: notes, meta: meta, label: label || refLabelOf(meta) };
   renderRefBar();
   renderPendingCard();
+  show("refGuide", false);
 }
 
 function renderPendingCard(){
@@ -5112,8 +5127,10 @@ async function loadAppAudioFile(f){
     APP.audioLabel = f.name + "（" + fmtNum(APP.audio.data.length / APP.audio.sr, 2) + " s @ " + APP.audio.sr + " Hz）";
     if (APP.ref && APP.ref.notes && APP.ref.notes.length){
       setStatus("音乐已就绪：" + APP.audioLabel + "。点「开始诊断（对齐参考序列）」开始分析。", "ok");
+      show("refGuide", false);
     } else {
-      setStatus("音乐已就绪：" + APP.audioLabel + "。还差参考序列：请先在「音阶 / 曲目 / 曲库」模式载入参考谱，或在「拔带」模式从这段音频提取参考级旋律，再回来点「开始诊断」。", "");
+      setStatus("音乐已就绪：" + APP.audioLabel + "。只差练习内容：点下方按钮一键生成音阶参考，或载入内置曲，即可开始诊断。", "");
+      show("refGuide", true);
     }
   } catch (e){
     const msg = "音频解码失败：" + e.message;
@@ -5180,7 +5197,8 @@ function analyzeBuffer(audio, ref){
 
 function runAnalysis(trigger){
   if (!APP.ref || !APP.ref.notes.length){
-    setStatus("还没有参考序列：请先在「音阶模式」生成参考序列，或在「曲目模式」导入 MusicXML/MIDI。", "err");
+    setStatus("还没有参考序列：点下方「一键生成音阶参考 / 载入内置曲」即可快速开始，或到「音阶 / 曲目 / 曲库」模式载入参考谱。", "err");
+    show("refGuide", true);
     return null;
   }
   if (!APP.audio || !APP.audio.data.length){
@@ -5863,6 +5881,12 @@ function init(){
 
   $("calib").addEventListener("input", function(){ $("calibVal").textContent = this.value + " 音分"; });
   $("btnRun").addEventListener("click", function(){ runAnalysis(APP.audioLabel || "音频"); });
+  $("rgScale").addEventListener("click", function(){
+    const r = defaultScaleRef();
+    setRef(r.notes, r.meta);
+    show("refGuide", false);
+    setStatus("已生成 C 大调两个八度音阶参考，点「开始诊断」即可。", "ok");
+  });
   $("btnFile").addEventListener("click", function(){ $("file").click(); });
   $("btnFileBig").addEventListener("click", function(){ $("file").click(); });
   $("file").addEventListener("change", function(){
@@ -6099,6 +6123,20 @@ init();
     });
     $("sBtnRec").addEventListener("click", simpleRecord);
     $("sBtnFile").addEventListener("click", function(){ $("sFile").click(); });
+    const rgTw = $("rgTwinkle");
+    if (rgTw) rgTw.addEventListener("click", function(){
+      const r = SIMPLE_REFS.twinkle;
+      setRef(r.notes, r.meta);
+      show("refGuide", false);
+      setStatus("已载入内置曲「小星星」参考，点「开始诊断」即可。", "ok");
+    });
+    const rgOde = $("rgOde");
+    if (rgOde) rgOde.addEventListener("click", function(){
+      const r = SIMPLE_REFS.ode;
+      setRef(r.notes, r.meta);
+      show("refGuide", false);
+      setStatus("已载入内置曲「欢乐颂」参考，点「开始诊断」即可。", "ok");
+    });
     $("sFile").addEventListener("change", function(){
       const f = this.files && this.files[0];
       if (f) simpleLoadAudio(f);
