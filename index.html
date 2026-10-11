@@ -150,6 +150,12 @@
   .simple-status.ok{background:#16302a;color:#6fd3a3}
   .simple-status.err{background:#3a1f1d;color:#f2a0a0}
   .s-kv{background:#242b39}
+  .result-nav{background:rgba(30,35,48,.92);border-color:#343b4a}
+  .result-nav .rn-item{background:#232a38;color:#8ab3ea;border-color:#39445c}
+  .s-pointer{background:#1d2940;border-color:#39445c}
+  .s-pointer-head{color:#8ab3ea}
+  .s-pointer-note{color:#dfe6f0}
+  .s-pointer-hint{color:#9aa3b5}
 }
 @media (max-width:480px){ .simple-title{font-size:26px} .sbtn{font-size:18px;padding:15px 8px} }
 /* ============================================================
@@ -353,9 +359,24 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
 .s-speakask .mini{font-size:14px;padding:8px 16px;min-height:40px;margin:2px 4px}
 .s-checkin{background:#FF9500;color:#fff;font-size:19px;margin-top:8px}
 .s-checkinmsg{margin-top:8px;font-size:15px;color:#1E8E5A;text-align:center;font-weight:700}
+.result-nav{position:sticky;top:0;z-index:60;display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;padding:6px 8px;background:rgba(242,243,245,.92);backdrop-filter:blur(6px);border:1px solid rgba(60,60,67,.14);border-radius:10px}
+.result-nav .rn-item{flex:0 0 auto;padding:6px 10px;font-size:13px;font-weight:600;min-height:30px;border-radius:7px;background:#fff;color:#2f6fd0;border:1px solid rgba(60,60,67,.14);cursor:pointer}
+.result-nav .rn-item:hover{opacity:.85}
+.lib-filter-row{align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap}
+.lib-filter{display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:var(--fg);margin:0;cursor:pointer}
+.lib-filter input{width:18px;height:18px;accent-color:var(--acc)}
 .s-wave{margin-top:12px;background:#F0F5FF;border-radius:12px;padding:6px;display:none}
 .s-wave canvas{display:block;width:100%;height:96px}
 .s-wave.show{display:block}
+.s-pointer{margin-top:12px;background:#F0F5FF;border:1px solid #c9d8ef;border-radius:12px;padding:12px 10px;text-align:center}
+.s-pointer-head{font-size:15px;font-weight:700;color:#2f6fd0;margin-bottom:4px}
+.s-pointer-note{font-size:22px;font-weight:800;color:#223;margin-bottom:6px}
+.s-pointer-note b{font-size:30px;color:#2f6fd0}
+.s-pointer-hint{font-size:13px;color:#667;margin-top:6px}
+.s-pointer.ok .s-pointer-note b{color:#1E8E5A}
+.s-pointer.warn .s-pointer-note b{color:#C77800}
+.s-pointer.bad .s-pointer-note b{color:#FF3B30}
+.s-pointer canvas{display:block;width:100%;height:56px;margin-top:4px}
 @media (prefers-color-scheme: dark){
   .s-speak{background:#fff;border-color:#AF52DE;color:#AF52DE}
   .s-checkin{background:#FF9500;color:#fff}
@@ -426,6 +447,12 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
       </div>
       <input type="file" id="sFile" aria-label="选择音频文件" style="display:none">
       <div class="s-wave" id="sWave"><canvas id="sWaveCanvas" height="96"></canvas></div>
+      <div class="s-pointer hidden" id="sPointer" aria-live="polite">
+        <div class="s-pointer-head">实时音准</div>
+        <div class="s-pointer-note" id="sPointerNote">—</div>
+        <canvas id="sPointerCanvas" width="0" height="0"></canvas>
+        <div class="s-pointer-hint" id="sPointerHint">吹奏时看指针进绿色区域就是准（±10 音分）</div>
+      </div>
       <div class="simple-status" id="sStatus" aria-live="polite">请先选好练习内容，再录音或选文件</div>
     </div>
 
@@ -761,6 +788,10 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
           <label>来源</label>
           <select id="libBook"></select>
         </div>
+      </div>
+      <div class="row lib-filter-row">
+        <label class="lib-filter"><input type="checkbox" id="libKOnly"> 仅看可一键练习</label>
+        <span class="kv" id="libFilterHint"></span>
       </div>
       <div class="note" id="libSummary"></div>
       <div class="scroll" style="margin-top:10px">
@@ -1318,7 +1349,7 @@ const PIECE_REFS = {"seed_小星星":{"title":"小星星","genre":"children","te
    ================================================================== */
 const CK_KEY = "marvis_sax_checkin_v1";
 const LIB_PAGE = 40;
-const LIB_STATE = { q:"", genre:"", route:"", book:"", shown:LIB_PAGE };
+const LIB_STATE = { q:"", genre:"", route:"", book:"", kOnly:false, shown:LIB_PAGE };
 
 function libInit(){
   const gs = Array.from(new Set(PIECES_LIB.items.map(i => i.g))).filter(Boolean).sort();
@@ -1340,6 +1371,7 @@ function libInit(){
 
 function libMatch(it){
   const s = LIB_STATE;
+  if (s.kOnly && !it.k) return false;
   if (s.genre && it.g !== s.genre) return false;
   if (s.route){
     if (s.route === "k") { if (!it.k) return false; }
@@ -1371,7 +1403,10 @@ function libRender(){
   $("btnLibMore").classList.toggle("hidden", slice.length >= hit.length);
   const cnt = {s:0,d:0,u:0,"?":0};
   hit.forEach(i => { if (i.k) cnt.s++; else cnt[i.r] = (cnt[i.r] || 0) + 1; });
-  $("libSummary").innerHTML = "命中 <b>" + hit.length + "</b> 首：可即时生成 " + cnt.s +
+  $("libFilterHint").textContent = LIB_STATE.kOnly
+    ? "已筛选：仅显示可一键练习（公版种子 " + (PIECES_LIB.seeds || []).length + " 首）"
+    : "可一键练习 " + (PIECES_LIB.items.filter(i => i.k).length) + " 首；其余曲目可走「拔带提取 / 曲目导入」两条路径获取参考谱。";
+  $("libSummary").innerHTML = (LIB_STATE.kOnly ? "已筛选为可一键练习。" : "") + "命中 <b>" + hit.length + "</b> 首：可即时生成 " + cnt.s +
     " · 公版渠道取谱 " + cnt.d + " · 需自持授权 " + cnt.u + " · 待核 " + (cnt["?"] || 0) +
     "。<br>说明：本索引只登记公开可见的曲名/来源/版权初判，不含乐谱；" +
     "「待核」项使用前须先核实，系统不做推测填充。";
@@ -1400,7 +1435,11 @@ function libDetail(id){
   } else {
     h += '<div class="note">本曲暂无内置参考序列：' +
       (it.r === "d" ? '可自行从公版渠道取谱（MusicXML / MIDI）后，在「曲目模式」导入。'
-                    : '请导入你自持授权的 MusicXML / MIDI，在「曲目模式」解析。') + '</div>';
+                    : '请导入你自持授权的 MusicXML / MIDI，在「曲目模式」解析。') + '</div>' +
+      '<div class="row" style="margin-top:10px">' +
+      '<button class="ghost" data-goto="extract">去拔带提取</button>' +
+      '<button class="ghost" data-goto="piece">去曲目导入</button>' +
+      '<span class="kv">拔带：从你自己持有的录音里提取参考谱；曲目导入：导入自持授权的 MusicXML / MIDI 等乐谱文件。</span></div>';
   }
   h += '<div class="pending" style="margin-top:10px"><b>版权与边界</b><ul>' +
     '<li>索引只登记曲名等事实性元数据，<b>不含乐谱</b>；同名曲的编配版/编订版可能另有著作权。</li>' +
@@ -1409,6 +1448,9 @@ function libDetail(id){
   $("libDetail").innerHTML = h;
   Array.from(document.querySelectorAll(".libLoad")).forEach(b => {
     b.addEventListener("click", () => { libLoadSeed(b.getAttribute("data-seed")); });
+  });
+  Array.from(document.querySelectorAll("#libDetail [data-goto]")).forEach(b => {
+    b.addEventListener("click", () => { switchMode(b.getAttribute("data-goto")); });
   });
 }
 
@@ -5735,6 +5777,23 @@ async function loadAppAudioFile(f){
 }
 
 let REC = null;
+/* A1 iOS 录音兼容：MediaRecorder mimeType 探测（优先 audio/mp4，回退 audio/webm；都不支持返回 null 由浏览器默认） */
+function pickRecorderMimeType(){
+  try {
+    if (typeof MediaRecorder === "undefined" || !MediaRecorder.isTypeSupported) return null;
+    const candidates = ["audio/mp4;codecs=mp4a.40.2", "audio/mp4", "audio/webm;codecs=opus", "audio/webm"];
+    for (let i = 0; i < candidates.length; i++){
+      try { if (MediaRecorder.isTypeSupported(candidates[i])) return candidates[i]; } catch (e){}
+    }
+    return null;
+  } catch (e){ return null; }
+}
+function extForMime(mime){
+  if (!mime) return "webm";
+  if (mime.indexOf("mp4") >= 0) return "m4a";
+  if (mime.indexOf("webm") >= 0) return "webm";
+  return "webm";
+}
 async function toggleRecord(){
   const btn = $("btnRec");
   if (REC && REC.recording){
@@ -5745,7 +5804,9 @@ async function toggleRecord(){
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia)
       throw new Error("当前环境不支持麦克风（file:// 直接打开时浏览器禁止录音）。请用「选择音频文件」导入录音，或用 Edge/Chrome 以 http 方式打开。");
     const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation:false, noiseSuppression:false, autoGainControl:false } });
-    const mr = new MediaRecorder(stream);
+    const recMime = pickRecorderMimeType();
+    const mr = recMime ? new MediaRecorder(stream, { mimeType: recMime }) : new MediaRecorder(stream);
+    const recExt = extForMime(recMime);
     const chunks = [];
     REC = { recording: true, recorder: mr, chunks: chunks, stream: stream };
     mr.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
@@ -5754,13 +5815,13 @@ async function toggleRecord(){
       stream.getTracks().forEach(t => t.stop());
       btn.textContent = "开始录音";
       try {
-        const blob = new Blob(chunks, { type: chunks[0] ? chunks[0].type : "audio/webm" });
-        const f = new File([blob], "recording.webm", { type: blob.type });
+        const blob = new Blob(chunks, { type: chunks[0] ? chunks[0].type : (recMime || "audio/webm") });
+        const f = new File([blob], "recording." + recExt, { type: blob.type });
         APP.audio = await decodeAudioFile(f);
         APP.audioLabel = "浏览器录音（" + fmtNum(APP.audio.data.length / APP.audio.sr, 2) + " s）";
         setStatus("录音已就绪：" + APP.audioLabel + "。点「开始诊断（对齐参考序列）」开始分析。", "ok");
       } catch (e){
-        setStatus("录音解码失败：" + e.message, "err");
+        setStatus("录音解码失败：" + e.message + "。当前浏览器可能不支持该录音格式，请改用「选择音频文件」上传录音。", "err");
       }
     };
     mr.start();
@@ -5829,6 +5890,35 @@ function metricCard(k, v, cls){
 
 function renderResult(d, r){
   const it = d.intonation, rp = d.rhythm, cp = d.completeness, al = d.alignment, sc = d.scores;
+
+  /* A3 结果卡锚点导航条（点击滚动定位；重复渲染先清旧） */
+  const oldNav = document.getElementById("resultNav");
+  if (oldNav) oldNav.remove();
+  const navItems = [
+    ["overviewCard", "回到结果摘要"],
+    ["dimCard", "五维"],
+    ["perNoteCard", "逐音"],
+    ["issuesCard", "问题"],
+    ["planCard", "处方"],
+    ["chartCard", "轨迹"],
+    ["textCard", "文本"]
+  ];
+  const nav = document.createElement("div");
+  nav.id = "resultNav";
+  nav.className = "result-nav";
+  nav.setAttribute("role", "navigation");
+  nav.setAttribute("aria-label", "结果导航");
+  nav.innerHTML = navItems.map(function(x){
+    return '<button type="button" class="rn-item" data-target="' + x[0] + '">' + x[1] + "</button>";
+  }).join("");
+  nav.addEventListener("click", function(ev){
+    const b = ev.target.closest ? ev.target.closest(".rn-item") : null;
+    if (!b) return;
+    const el = document.getElementById(b.getAttribute("data-target"));
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+  const oc = document.getElementById("overviewCard");
+  if (oc) oc.insertAdjacentElement("afterbegin", nav);
 
   /* 概览（渐进披露：先关键概览，其余专业指标收进折叠区） */
   const btnDetail = document.getElementById("btnDetailMetrics");
@@ -6552,6 +6642,7 @@ function init(){
   $("libGenre").addEventListener("change", function(){ LIB_STATE.genre = this.value; LIB_STATE.shown = LIB_PAGE; libRender(); });
   $("libRoute").addEventListener("change", function(){ LIB_STATE.route = this.value; LIB_STATE.shown = LIB_PAGE; libRender(); });
   $("libBook").addEventListener("change", function(){ LIB_STATE.book = this.value; LIB_STATE.shown = LIB_PAGE; libRender(); });
+  $("libKOnly").addEventListener("change", function(){ LIB_STATE.kOnly = this.checked; LIB_STATE.shown = LIB_PAGE; libRender(); });
   $("btnLibMore").addEventListener("click", function(){ LIB_STATE.shown += LIB_PAGE * 2; libRender(); });
   $("btnLibTest").addEventListener("click", function(){ libSelftest(); });
   $("libBody").addEventListener("click", function(ev){
@@ -6791,6 +6882,8 @@ init();
     window.SIMPLE_WAVE = null;
     const box = $("sWave");
     if (box) box.classList.remove("show");
+    const sp = $("sPointer");
+    if (sp){ sp.classList.add("hidden"); const sn = $("sPointerNote"); if (sn) sn.textContent = "—"; sp.classList.remove("ok", "warn", "bad"); }
   }
   function startSimpleWave(stream){
     try {
@@ -6799,13 +6892,15 @@ init();
       const ctx = new AC();
       const src = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();
-      analyser.fftSize = 512;
+      analyser.fftSize = 2048;   /* A2 实时音准需要更长时域窗口（1024 样本）供 YIN 检测 */
       src.connect(analyser);
       const box = $("sWave"), cvs = $("sWaveCanvas");
       if (!box || !cvs) return;
       if (cvs.clientWidth > 0) cvs.width = cvs.clientWidth;
       box.classList.add("show");
-      window.SIMPLE_WAVE = { ctx: ctx, src: src, analyser: analyser, raf: 0, t0: Date.now() };
+      const spBox = $("sPointer");
+      if (spBox) spBox.classList.remove("hidden");
+      window.SIMPLE_WAVE = { ctx: ctx, src: src, analyser: analyser, raf: 0, t0: Date.now(), lastDet: 0, pbuf: null };
       function draw(){
         const w = window.SIMPLE_WAVE;
         if (!w || !w.analyser) return;
@@ -6823,9 +6918,91 @@ init();
         }
         g.strokeStyle = "#007AFF"; g.lineWidth = 2.5; g.lineJoin = "round"; g.lineCap = "round";
         g.stroke();
+        try { simplePitchTick(w); } catch (e){}
         w.raf = requestAnimationFrame(draw);
       }
       draw();
+      function simplePitchTick(w){
+        const sp = $("sPointer");
+        if (!sp || !window.SIMPLE_REC || !SIMPLE_REC.recording || !w || !w.analyser) return;
+        const now = Date.now();
+        if (now - w.lastDet < 120) return;
+        w.lastDet = now;
+        const n = w.analyser.fftSize;
+        if (!w.pbuf || w.pbuf.length !== n) w.pbuf = new Float32Array(n);
+        w.analyser.getFloatTimeDomainData(w.pbuf);
+        let e = 0;
+        for (let i = 0; i < n; i++){ const v = w.pbuf[i]; e += v * v; }
+        const rms = Math.sqrt(e / n);
+        let f0 = -1;
+        if (rms > 0.008){
+          const sr = w.ctx.sampleRate || 44100;
+          const tauMax = Math.min(Math.floor(sr / 200), 4096);
+          const tauMin = Math.max(4, Math.floor(sr / 1000));
+          const W = 512;
+          if (n >= W + tauMax){
+            const r = yinFrame(w.pbuf, 0, W, sr, tauMin, tauMax, 0.15);
+            if (r.f0 > 0) f0 = r.f0;
+          }
+        }
+        if (f0 <= 0){ renderPointer(null, null, 0, false); return; }
+        const base = Number($("base").value) || 440;
+        const calib = Number($("calib").value) || 0;
+        const refA = base * Math.pow(2, calib / 1200);
+        const curMidi = 69 + 12 * Math.log(f0 / refA) / Math.LN2;
+        const notes = (APP.ref && APP.ref.notes) || [];
+        let target = null, bd = 1e9;
+        for (let i = 0; i < notes.length; i++){
+          const d = Math.abs(notes[i].midi - curMidi);
+          if (d < bd){ bd = d; target = notes[i]; }
+        }
+        let cents = 0;
+        if (target){
+          const tf = refA * Math.pow(2, (target.midi - 69) / 12);
+          cents = 1200 * Math.log(f0 / tf) / Math.LN2;
+        }
+        renderPointer(target, f0, cents, true);
+      }
+      function renderPointer(target, f0, cents, on){
+        const sp = $("sPointer"), note = $("sPointerNote");
+        if (!sp || !note) return;
+        if (!on){
+          note.textContent = "等待发声…";
+          sp.classList.remove("ok", "warn", "bad");
+          return;
+        }
+        const base = Number($("base").value) || 440;
+        const calib = Number($("calib").value) || 0;
+        const refA = base * Math.pow(2, calib / 1200);
+        const curMidi = 69 + 12 * Math.log(f0 / refA) / Math.LN2;
+        const curName = midiToName(curMidi);
+        const targetName = target ? midiToName(target.midi) : "—";
+        const sgn = cents >= 0 ? "+" : "-";
+        note.innerHTML = "目标 <b>" + esc(targetName) + "</b>　当前 <b>" + esc(curName) + "</b>　" + sgn + Math.abs(cents).toFixed(0) + " 音分";
+        sp.classList.toggle("ok", Math.abs(cents) <= 10);
+        sp.classList.toggle("warn", Math.abs(cents) > 10 && Math.abs(cents) <= 25);
+        sp.classList.toggle("bad", Math.abs(cents) > 25);
+        const cvs = $("sPointerCanvas");
+        if (!cvs) return;
+        if (cvs.clientWidth > 0) cvs.width = cvs.clientWidth;
+        const g = cvs.getContext("2d");
+        const wpx = cvs.width || 300, hpx = cvs.height || 56;
+        g.clearRect(0, 0, wpx, hpx);
+        const cx = wpx / 2, half = wpx * 0.42;
+        g.fillStyle = "rgba(30,142,90,.18)";
+        g.fillRect(cx - half * 10 / 50, 8, half * 20 / 50, hpx - 16);
+        g.strokeStyle = "#c9d8ef"; g.lineWidth = 1;
+        for (let c = -50; c <= 50; c += 10){
+          const x = cx + half * c / 50;
+          g.beginPath(); g.moveTo(x, hpx / 2 - (c % 20 === 0 ? 6 : 3)); g.lineTo(x, hpx / 2 + (c % 20 === 0 ? 6 : 3)); g.stroke();
+        }
+        g.strokeStyle = "#2f6fd0"; g.lineWidth = 1.5;
+        g.beginPath(); g.moveTo(cx, 6); g.lineTo(cx, hpx - 6); g.stroke();
+        const px = Math.max(half * 0.05, Math.min(half * 1.9, cx + half * Math.max(-50, Math.min(50, cents)) / 50));
+        g.strokeStyle = Math.abs(cents) <= 10 ? "#1E8E5A" : (Math.abs(cents) <= 25 ? "#C77800" : "#FF3B30");
+        g.lineWidth = 3;
+        g.beginPath(); g.moveTo(px, 6); g.lineTo(px, hpx - 6); g.stroke();
+      }
     } catch (e){ /* 波形只是辅助反馈，失败不影响录音 */ }
   }
   async function simpleRecord(){
@@ -6841,7 +7018,9 @@ init();
         try { localStorage.setItem("yinzhen_mic_hint", "1"); } catch (e){}
       }
       const stream = await navigator.mediaDevices.getUserMedia({ audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:false } });
-      const mr = new MediaRecorder(stream);
+      const recMime = pickRecorderMimeType();
+      const mr = recMime ? new MediaRecorder(stream, { mimeType: recMime }) : new MediaRecorder(stream);
+      const recExt = extForMime(recMime);
       const chunks = [];
       window.SIMPLE_REC = { recording:true, recorder:mr, chunks:chunks, stream:stream, t0: Date.now() };
       startSimpleWave(stream);
@@ -6852,14 +7031,14 @@ init();
         btn.textContent = "开始录音";
         stopSimpleWave();
         try {
-          const blob = new Blob(chunks, { type: chunks[0] ? chunks[0].type : "audio/webm" });
-          const f = new File([blob], "recording.webm", { type: blob.type });
+          const blob = new Blob(chunks, { type: chunks[0] ? chunks[0].type : (recMime || "audio/webm") });
+          const f = new File([blob], "recording." + recExt, { type: blob.type });
           APP.audio = await decodeAudioFile(f);
           const secs = APP.audio.data.length / APP.audio.sr;
           APP.audioLabel = "录音（" + fmtNum(secs, 2) + " 秒）";
           setSimpleStatus("已录到 " + fmtNum(secs, 1) + " 秒声音，正在分析…", "ok");
           simpleRun();
-        } catch (e){ setSimpleStatus("录音处理失败：" + e.message, "err"); }
+        } catch (e){ setSimpleStatus("录音处理失败：" + e.message + "。可改用「从手机里选音乐」上传录音。", "err"); }
       };
       mr.start();
       btn.textContent = "停止录音";
