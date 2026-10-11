@@ -614,7 +614,7 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
 
     <!-- ---- 拔带模式（清唱/独奏单声部旋律提取；仅限用户自持素材，输出为参考级） ---- -->
     <div id="extractPanel" class="hidden" style="margin-top:14px">
-      <div class="note">拔带：从你自己的清唱 / 独奏录音里提取音高，变成可练的参考谱（仅限你自持的素材）。</div>
+      <div class="note">拔带：从你自己的<b>清唱 / 独奏</b>录音里提取音高，变成可练的参考谱（仅限你自持的素材）。<span class="warnline">当前版本<b>不支持从带伴奏歌曲直接分离主旋律</b>（不做音源分离）：请导入纯单声部音频；带伴奏歌曲请改用「先唱一遍」录音生成参考、在曲目模式上传乐谱/文本简谱，或使用曲库内置公版曲目。</span></div>
       <div class="row">
         <div class="field dropzone" id="extractDrop" style="flex:2 1 240px">
           <label>音频文件</label>
@@ -678,7 +678,7 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
           </div>
         </div>
       </div>
-      <div class="note" id="extractNote">先导入一段清唱 / 独奏音频，再点「提取单声部旋律」。提取结果会成为当前参考序列，可直接在下方诊断区录音比对。</div>
+      <div class="note" id="extractNote">先导入一段<b>清唱 / 独奏</b>音频，再点「提取单声部旋律」。提取结果会成为当前参考序列，可直接在下方诊断区录音比对。<span class="warnline">注意：带伴奏歌曲（人声+伴奏混合）无法在本模式生成谱子（红线：不做音源分离）。替代路径：① 先唱一遍并用主界面录音生成参考；② 在曲目模式上传乐谱 / 文本简谱；③ 使用曲库内置公版曲目。</span></div>
       <div class="field" style="margin-top:8px">
         <label>简谱（提取结果，只读，可复制）</label>
         <textarea id="extractJianpu" class="scroll" style="width:100%;height:130px" readonly></textarea>
@@ -3835,7 +3835,8 @@ async function extractLoadAudio(f){
     if ($("extractOctInfo")) $("extractOctInfo").textContent = "当前：原样";
     $("extractNote").innerHTML = "已载入 <b>" + esc(f.name) + "</b> · " +
       fmtNum(audio.data.length / audio.sr, 2) + " s @ " + audio.sr +
-      " Hz。点「提取单声部旋律」开始（建议先听一遍，确认是单声部清唱 / 独奏）。";
+      " Hz。点「提取单声部旋律」开始（建议先听一遍，确认是单声部清唱 / 独奏）。" +
+      "<br><span class=\"warnline\">若这是带伴奏歌曲（人声+伴奏混合），本版本不做音源分离、无法分离主旋律生成谱子，请改用清唱 / 独奏录音，或曲库 / 曲目模式的内置与上传乐谱。</span>";
     setStatus("拔带：音频已就绪。", "ok");
   } catch (e){
     setStatus("拔带：音频解码失败：" + e.message + "。常见原因：格式不被浏览器支持或文件损坏。建议使用 wav / mp3 / m4a / ogg，文件不超过 100MB；可先转成 mp3 后重试。", "err");
@@ -4884,7 +4885,7 @@ function extractMelodyFromAudio(audio, opts){
   const refA = Number((INSTRUMENTS[inst].base || 440));
   const seg = segmentNotes(frames, refA, 25.0);
   if (!seg.length)
-    throw new Error("没有提取到任何音符：请确认是单声部清唱 / 独奏、音量足够、有效时长 ≥ 1 秒");
+    throw new Error("没有提取到任何音符：请确认音频是单声部清唱 / 独奏、音量足够、有效时长 ≥ 1 秒。若上传的是带伴奏歌曲（人声+伴奏混合），本版本不支持音源分离、无法生成主旋律谱；替代路径：① 先唱一遍并用主界面录音生成参考；② 在曲目模式上传乐谱 / 文本简谱；③ 使用曲库内置公版曲目。");
 
   const secPerBeat = extractEstimateBeatSec(seg, tempoHint);
   const tempoBpm = Number((60.0 / secPerBeat).toFixed(3));
