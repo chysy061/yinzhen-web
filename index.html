@@ -362,6 +362,28 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
   .s-wave{background:#F0F5FF}
 }
 .help-ico:focus-visible{outline:3px solid rgba(0,122,255,.45);outline-offset:3px}
+/* ============ 拔带 v0.8：五线谱渲染 + 萨克斯移调 ============ */
+.tpose{min-height:40px;padding:6px 12px;font-size:14px;border-radius:10px}
+.tpose.active{background:var(--acc,#007AFF);color:#fff;border-color:var(--acc,#007AFF)}
+.stave-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;background:#fff;border:1px solid var(--line,rgba(60,60,67,.12));border-radius:12px;padding:10px 8px;margin:6px 0 4px}
+.stave-wrap svg{display:block;max-width:none}
+.stave-line{stroke:#1C1C1E;stroke-width:1}
+.stave-bar{stroke:#1C1C1E;stroke-width:1.4}
+.stave-ledger{stroke:#1C1C1E;stroke-width:1}
+.stave-clef{font-family:"Segoe UI Symbol","Noto Music","Bravura","Arial Unicode MS",serif;fill:#1C1C1E}
+.stave-acc{font-family:"Segoe UI Symbol","Noto Music","Arial Unicode MS",sans-serif;fill:#1C1C1E}
+.stave-note{fill:#1C1C1E;stroke:none}
+.stave-note.hollow{fill:#fff;stroke:#1C1C1E;stroke-width:1.2}
+.stave-stem{stroke:#1C1C1E;stroke-width:1.5}
+.stave-beam{fill:#1C1C1E}
+.stave-dot{fill:#1C1C1E}
+.stave-time{font-family:"Segoe UI Symbol",sans-serif;fill:#1C1C1E}
+.stave-tpnote{font-size:14px;color:var(--dim,#5F5F64);line-height:1.5}
+.stave-title{font-size:15px;font-weight:600;color:#1C1C1E;margin:10px 0 2px;padding-top:6px;border-top:1px solid var(--line,rgba(60,60,67,.12))}
+#extractSolfege{font-size:14px;color:#1C1C1E;line-height:1.6;background:#F7F8FA;border:1px solid var(--line,rgba(60,60,67,.12));border-radius:10px;padding:6px 10px;margin-top:2px;overflow-x:auto;white-space:nowrap}
+@media (prefers-color-scheme: dark){
+  .stave-wrap{background:#fff}
+}
 </style>
 </head>
 <body>
@@ -614,7 +636,7 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
 
     <!-- ---- 拔带模式（清唱/独奏单声部旋律提取；仅限用户自持素材，输出为参考级） ---- -->
     <div id="extractPanel" class="hidden" style="margin-top:14px">
-      <div class="note">拔带：从你自己的<b>清唱 / 独奏</b>录音里提取音高，变成可练的参考谱（仅限你自持的素材）。<span class="warnline">当前版本<b>不支持从带伴奏歌曲直接分离主旋律</b>（不做音源分离）：请导入纯单声部音频；带伴奏歌曲请改用「先唱一遍」录音生成参考、在曲目模式上传乐谱/文本简谱，或使用曲库内置公版曲目。</span></div>
+      <div class="note">拔带：从你自己的<b>人声独唱歌曲 / 清唱 / 独奏</b>录音里提取音高，变成可练的参考谱（仅限你自持的素材）。<b>支持从立体声人声独唱歌曲（人声+伴奏）分离出人声单声部并制作谱子，可导出纯伴奏</b>；单声道音频自动走「单声部直通」路径。<span class="warnline">分离采用中置声道提取（mid/side 相位抵消法，k 可调 0.5–0.7），适合人声居中、伴奏偏置的常见混音；纯单声部音频无法分离，将自动直通分析。</span></div>
       <div class="row">
         <div class="field dropzone" id="extractDrop" style="flex:2 1 240px">
           <label>音频文件</label>
@@ -667,6 +689,28 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
         <button class="ghost" id="btnCopyExtract">复制简谱</button>
         <button class="ghost" id="btnExtractXml">下载乐谱</button>
         <button class="ghost" id="btnExtractMidi">下载 MIDI</button>
+        <button class="ghost" id="btnExtractExportWav">导出纯伴奏(WAV)</button>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <div class="field" style="flex:0 1 auto">
+          <label>处理方式</label>
+          <select id="extractSplitMode">
+            <option value="auto" selected>立体声自动分离（人声轨扒谱）</option>
+            <option value="mono">直接提取单声部（不分离）</option>
+          </select>
+        </div>
+        <div class="field" style="flex:0 1 auto">
+          <label>分离强度 k（0.5–0.7）</label>
+          <input type="number" id="extractSplitK" min="0.5" max="0.7" step="0.05" value="0.6" style="width:80px" title="k 越大，人声轨对伴奏抑制越强（默认 0.6）">
+        </div>
+        <div class="field" style="flex:1 1 220px">
+          <label>分离结果</label>
+          <div class="rb-r">
+            <button class="ghost mini" id="btnExtractPlayVocal">试听人声轨</button>
+            <button class="ghost mini" id="btnExtractPlayAccomp">试听伴奏轨</button>
+            <span class="kv" id="extractSplitInfo">未分离</span>
+          </div>
+        </div>
       </div>
       <div class="row" style="margin-top:10px">
         <div class="field" style="flex:0 1 auto">
@@ -678,7 +722,20 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
           </div>
         </div>
       </div>
-      <div class="note" id="extractNote">先导入一段<b>清唱 / 独奏</b>音频，再点「提取单声部旋律」。提取结果会成为当前参考序列，可直接在下方诊断区录音比对。<span class="warnline">注意：带伴奏歌曲（人声+伴奏混合）无法在本模式生成谱子（红线：不做音源分离）。替代路径：① 先唱一遍并用主界面录音生成参考；② 在曲目模式上传乐谱 / 文本简谱；③ 使用曲库内置公版曲目。</span></div>
+      <div class="note" id="extractNote">先导入一段<b>人声独唱歌曲 / 清唱 / 独奏</b>音频，再点「提取旋律」。立体声音频会自动用 mid/side 中置声道法分离人声与伴奏，并<b>基于人声轨分析</b>生成谱子；单声道音频自动走「单声部直通」。分离完成后可试听人声/伴奏轨、导出纯伴奏 WAV。提取结果会成为当前参考序列，可直接在下方诊断区录音比对。<span class="warnline">注意：复音/密集和声仍无法生成谱子（不做复音提取）；结果均为参考级，仅用于练习比对。</span></div>
+      <div class="field" style="margin-top:8px">
+        <label>乐谱（五线谱 + 首调简谱 · 萨克斯移调）</label>
+        <div class="row" style="gap:6px;flex-wrap:wrap">
+          <button class="ghost mini tpose active" id="tpC" data-tp="C">原调 C</button>
+          <button class="ghost mini tpose" id="tpAlto" data-tp="alto">中音萨克斯 Eb</button>
+          <button class="ghost mini tpose" id="tpTenor" data-tp="tenor">次中音萨克斯 Bb</button>
+          <button class="ghost mini tpose" id="tpSoprano" data-tp="soprano">高音萨克斯 Bb</button>
+        </div>
+        <div class="stave-tpnote" id="extractTpNote">原调 C 记谱（通用谱，任何乐器均可按此视奏）。</div>
+        <div class="stave-title" id="extractStaveTitle">五线谱（拔带结果）</div>
+        <div class="stave-wrap" id="extractStaveWrap" aria-label="拔带五线谱视图"><svg id="extractStave" width="100%" height="120" role="img" aria-label="五线谱尚未生成，请先提取旋律"></svg></div>
+        <div class="note" id="extractSolfege">首调唱名：—（提取后显示）</div>
+      </div>
       <div class="field" style="margin-top:8px">
         <label>简谱（提取结果，只读，可复制）</label>
         <textarea id="extractJianpu" class="scroll" style="width:100%;height:130px" readonly></textarea>
@@ -3827,17 +3884,35 @@ async function extractLoadAudio(f){
   try {
     setStatus("拔带：正在解码音频…", "");
     const audio = await decodeAudioFile(f);
+    /* 载入时同步 UI 上的处理方式 / 分离强度 */
+    const smEl = $("extractSplitMode"), skEl = $("extractSplitK");
+    if (smEl) EXTRACT_STATE.splitMode = smEl.value;
+    if (skEl) EXTRACT_STATE.splitK = parseFloat(skEl.value) || 0.6;
     EXTRACT_STATE.audio = audio;
     EXTRACT_STATE.label = f.name;
     EXTRACT_STATE.result = null;
     EXTRACT_STATE.octShift = 0;
+    EXTRACT_STATE.vocalTrack = null;
+    EXTRACT_STATE.accompTrack = null;
+    EXTRACT_STATE._splitKUsed = null;
     $("extractJianpu").value = "";
     if ($("extractOctInfo")) $("extractOctInfo").textContent = "当前：原样";
+    const nCh = (audio.channels && audio.channels.length) || 1;
+    let hint = "";
+    if (nCh >= 2 && EXTRACT_STATE.splitMode === "auto"){
+      const sp = extractEnsureSplit();
+      hint = "检测到 <b>" + (audio.nChannels || nCh) + " 声道</b>音频，已用 mid/side 中置声道法<b>分离人声轨与伴奏轨</b>（k=" +
+        Number(EXTRACT_STATE.splitK).toFixed(2) + "），可点击「试听人声轨 / 试听伴奏轨」切换试听，扒谱将<b>基于人声轨分析</b>。";
+    } else if (nCh >= 2){
+      hint = "检测到 <b>" + (audio.nChannels || nCh) + " 声道</b>音频，当前处理方式为「直接提取单声部（不分离）」，不会分离人声/伴奏。";
+    } else {
+      hint = "检测到 <b>单声道</b>音频：无法分离（需 ≥2 声道），自动走<b>「单声部直通」</b>路径，直接分析整轨。";
+    }
     $("extractNote").innerHTML = "已载入 <b>" + esc(f.name) + "</b> · " +
       fmtNum(audio.data.length / audio.sr, 2) + " s @ " + audio.sr +
-      " Hz。点「提取单声部旋律」开始（建议先听一遍，确认是单声部清唱 / 独奏）。" +
-      "<br><span class=\"warnline\">若这是带伴奏歌曲（人声+伴奏混合），本版本不做音源分离、无法分离主旋律生成谱子，请改用清唱 / 独奏录音，或曲库 / 曲目模式的内置与上传乐谱。</span>";
-    setStatus("拔带：音频已就绪。", "ok");
+      " Hz。<br>" + hint + " 点「提取旋律」开始。";
+    extractSplitInfoUpdate();
+    setStatus("拔带：音频已就绪" + (nCh >= 2 && EXTRACT_STATE.splitMode === "auto" ? "（已分离人声/伴奏）" : "") + "。", "ok");
   } catch (e){
     setStatus("拔带：音频解码失败：" + e.message + "。常见原因：格式不被浏览器支持或文件损坏。建议使用 wav / mp3 / m4a / ogg，文件不超过 100MB；可先转成 mp3 后重试。", "err");
   }
@@ -4790,7 +4865,8 @@ function extractDownload(name, payload, mime){
    —— 红线有限度放开（仅本栏）：不做音源分离、不做复音/和弦提取；
       仅用户自持素材、仅单声部输出、结果一律标注「参考级」
    ================================================================== */
-const EXTRACT_STATE = { audio:null, label:"", result:null, octShift:0 };
+const EXTRACT_STATE = { audio:null, label:"", result:null, octShift:0, transposeKey:"C",
+  splitK:0.6, splitMode:"auto", vocalTrack:null, accompTrack:null, splitInfo:"" };
 const EXTRACT_GRID_PER_BEAT = 4;
 const EXTRACT_MIN_DUR_GRID = 1;
 /* Krumhansl–Kessler 调性轮廓（与 hum_extract.py 同一组模板） */
@@ -4869,9 +4945,124 @@ function extractQuantize(notes, beatsPerMeasure, secPerBeat, gridPerBeat){
   return out;
 }
 
+/* ============== 拔带 v0.9：中置声道分离（mid/side）+ 人声轨扒谱 + 导出纯伴奏 ==============
+   仅当输入为立体声/多声道（≥2 声道）时启用；单声道自动走「单声部直通」。
+   mid[i]=(L+R)/2（中置：人声+居中伴奏）、side[i]=(L-R)/2（侧向：伴奏差异），
+   人声轨 ≈ mid - side*k（k∈[0.5,0.7]，默认 0.6），伴奏轨 ≈ side（相位抵消法）。
+   纯前端逐样本计算，零依赖、零网络请求。 */
+function extractSplitStereo(audio, k){
+  const ch = (audio && audio.channels) || [];
+  if (!ch || ch.length < 2) return null;
+  const n = ch[0].length;
+  const L = ch[0], R = ch[1];
+  const vocal = new Float32Array(n), accomp = new Float32Array(n);
+  const kk = (isFinite(k) && k >= 0 && k <= 1) ? Number(k) : 0.6;
+  for (let i = 0; i < n; i++){
+    const mid = 0.5 * (L[i] + R[i]);
+    const side = 0.5 * (L[i] - R[i]);
+    vocal[i] = mid - kk * side;
+    accomp[i] = side;
+  }
+  return { vocal: vocal, accomp: accomp };
+}
+/* Float32 PCM → 16-bit PCM WAV（手写 WAV 头 + Int16，零依赖） */
+function extractWavBytesFromF32(data, sr){
+  const n = data.length;
+  const bytes = new Uint8Array(44 + n * 2);
+  const dv = new DataView(bytes.buffer);
+  const w = function(o, s){ for (let i = 0; i < s.length; i++) bytes[o + i] = s.charCodeAt(i) & 0xFF; };
+  w(0, "RIFF"); dv.setUint32(4, 36 + n * 2, true); w(8, "WAVE");
+  w(12, "fmt "); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true);
+  dv.setUint32(24, sr, true); dv.setUint32(28, sr * 2, true); dv.setUint16(32, 2, true); dv.setUint16(34, 16, true);
+  w(36, "data"); dv.setUint32(40, n * 2, true);
+  for (let i = 0; i < n; i++){
+    let v = data[i];
+    if (!isFinite(v)) v = 0;
+    if (v > 1) v = 1; else if (v < -1) v = -1;
+    dv.setInt16(44 + i * 2, Math.round(v * 32767), true);
+  }
+  return bytes;
+}
+/* 导出纯伴奏：文件名 伴奏_原文件名.wav */
+function exportAccompWav(){
+  const acc = EXTRACT_STATE.accompTrack;
+  if (!acc || !acc.length) throw new Error("还没有伴奏轨：请先导入立体声（人声+伴奏）音频并完成分离（处理方式为「立体声自动分离」）");
+  const sr = Number((EXTRACT_STATE.audio && EXTRACT_STATE.audio.sr) || 44100);
+  const bytes = extractWavBytesFromF32(acc, sr);
+  const base = String(EXTRACT_STATE.label || "录音").replace(/\.[A-Za-z0-9]+$/, "");
+  const n = extractDownload("伴奏_" + base.replace(/[\\/:*?"<>|\s]+/g, "_").slice(0, 40) + ".wav",
+                            bytes, "audio/wav");
+  setStatus("已导出纯伴奏 WAV（" + n + " 字节，16-bit PCM " + sr + " Hz 单声道）。", "ok");
+  return n;
+}
+/* 直接播放一段 PCM（人声轨 / 伴奏轨试听） */
+function playPcmData(data, sr, label){
+  if (!data || !data.length) throw new Error("没有可试听的音频数据");
+  stopPlay();
+  const ctx = audioCtxGet();
+  const buf = ctx.createBuffer(1, data.length, Math.max(1, sr || ctx.sampleRate));
+  buf.getChannelData(0).set(data);
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  src.connect(ctx.destination);
+  src.onended = function(){ if (PLAYER.node === src) PLAYER.node = null; };
+  src.start(0);
+  PLAYER.node = src;
+  const sec = data.length / Math.max(1, sr || ctx.sampleRate);
+  setStatus("试听中：" + (label || "音频轨") + "（共 " + fmtNum(sec, 2) + " s）。点「停止」或按 Esc 中断。", "ok");
+  return sec;
+}
+function extractSplitInfoUpdate(){
+  const info = $("extractSplitInfo");
+  if (!info) return;
+  const a = EXTRACT_STATE.audio;
+  if (!a){ info.textContent = "未分离"; return; }
+  const nCh = (a.channels && a.channels.length) || 1;
+  if (nCh < 2){
+    info.textContent = "单声道：直通单声部分析";
+    return;
+  }
+  const mode = EXTRACT_STATE.splitMode;
+  if (mode === "mono"){ info.textContent = "多声道：已选直接提取（不分离）"; return; }
+  if (EXTRACT_STATE.vocalTrack && EXTRACT_STATE.accompTrack){
+    const sr = a.sr || 44100;
+    const vsec = Number(EXTRACT_STATE.vocalTrack.length / sr).toFixed(2);
+    const asec = Number(EXTRACT_STATE.accompTrack.length / sr).toFixed(2);
+    info.textContent = "已分离（k=" + Number(EXTRACT_STATE.splitK).toFixed(2) + "）：人声 " + vsec + "s / 伴奏 " + asec + "s";
+  } else {
+    info.textContent = "多声道：待提取时分离（k=" + Number(EXTRACT_STATE.splitK).toFixed(2) + "）";
+  }
+}
+/* 按当前模式/k 确保分离轨就绪；返回 {mode, k}（mode: "mono" | "split"） */
+function extractEnsureSplit(){
+  const a = EXTRACT_STATE.audio;
+  if (!a) return { mode: "mono" };
+  const nCh = (a.channels && a.channels.length) || 1;
+  if (nCh < 2 || EXTRACT_STATE.splitMode === "mono"){
+    EXTRACT_STATE.vocalTrack = null;
+    EXTRACT_STATE.accompTrack = null;
+    EXTRACT_STATE._splitKUsed = null;
+    extractSplitInfoUpdate();
+    return { mode: "mono" };
+  }
+  const k = Number(EXTRACT_STATE.splitK);
+  if (!isFinite(k) || k < 0 || k > 1) EXTRACT_STATE.splitK = k = 0.6;
+  const need = (EXTRACT_STATE.vocalTrack == null || EXTRACT_STATE.accompTrack == null ||
+                Math.abs(Number(EXTRACT_STATE._splitKUsed) - k) > 1e-9);
+  if (need){
+    const sp = extractSplitStereo(a, k);
+    if (sp){ EXTRACT_STATE.vocalTrack = sp.vocal; EXTRACT_STATE.accompTrack = sp.accomp; EXTRACT_STATE._splitKUsed = k; }
+  }
+  extractSplitInfoUpdate();
+  return { mode: "split", k: k };
+}
+
 function extractMelodyFromAudio(audio, opts){
   opts = opts || {};
   if (!audio || !audio.data || !audio.data.length) throw new Error("没有可分析的音频，请先选择音频文件");
+  const srcData = opts.data || audio.data;
+  const srcSr = Number(opts.sr || audio.sr || 44100);
+  if (!srcData || !srcData.length) throw new Error("没有可分析的音频数据（分析轨为空，请重新载入音频）");
   const inst = opts.instrument || "vocal";
   if (!INSTRUMENTS[inst]) throw new Error("未知声源类型：" + inst);
   const tempoHint = (Number(opts.tempo_bpm) > 0 ? Number(opts.tempo_bpm) : null);
@@ -4880,7 +5071,7 @@ function extractMelodyFromAudio(audio, opts){
   const beatsPerMeasure = jianpuBeatsPerMeasure(timeSig);
 
   const targetSr = targetSrFor(inst);
-  const ds = downsample(audio.data, audio.sr, targetSr);
+  const ds = downsample(srcData, srcSr, targetSr);
   const frames = analyzePitch(ds.data, ds.sr, inst, null);
   const refA = Number((INSTRUMENTS[inst].base || 440));
   const seg = segmentNotes(frames, refA, 25.0);
@@ -4906,13 +5097,17 @@ function extractMelodyFromAudio(audio, opts){
   const warnings = [];
   if (!tempoHint) warnings.push("速度由音间间隔自动估计（" + tempoBpm + " BPM），结果对节拍解释敏感");
   if (keyInfo.score !== null && keyInfo.score < 0.75) warnings.push("调性自动判断置信度偏低，建议手动指定调性后重跑");
+  if (opts.from_vocal_track) warnings.push("基于人声轨分析：已用 mid/side 中置声道法分离（k=" +
+    (isFinite(Number(opts.split_k)) ? Number(opts.split_k).toFixed(2) : "0.6") +
+    "），残留伴奏可能带来少量杂音，谱面仅供参考");
   warnings.push("MIDI 音域 " + midiToName(lo) + "–" + midiToName(hi));
 
   return {
     notes: notes,
     meta: {
-      source: "hum_extract（拔带 · 单声部提取：" + (opts.source_label || "录音") + "）",
-      source_kind: "extract", format: "hum-extract-v1", version: "v0.6",
+      source: "hum_extract（拔带 · " + (opts.from_vocal_track ? "基于人声轨分析（mid/side 中置声道分离）" : "单声部直通") + "：" + (opts.source_label || "录音") + "）",
+      source_kind: "extract", format: "hum-extract-v1", version: "v0.9",
+      from_vocal_track: !!opts.from_vocal_track,
       instrument: inst, time_sig: timeSig, beats_per_measure: beatsPerMeasure,
       tempo_bpm: tempoBpm, tempo_estimated: (tempoHint === null),
       tonic_pc: keyInfo.tonic_pc, mode: keyInfo.mode, key_label: keyInfo.key_label,
@@ -4924,9 +5119,13 @@ function extractMelodyFromAudio(audio, opts){
       pitch_range: [midiToName(lo), midiToName(hi)],
       score_pitch: "sounding", transpose: 0,
       warnings: warnings,
-      boundary: ["仅支持单声部清唱 / 独奏（无和弦、无复音）",
-                 "不做音源分离（人声与伴奏已混音时不适用）",
-                 "提取结果为参考级，仅用于练习比对，不构成对任何作品的权利主张"]
+      boundary: opts.from_vocal_track
+        ? ["基于人声轨分析：分离结果为近似，残留伴奏可能引入少量杂音",
+           "不做复音/和弦提取（密集和声仍无法成谱）",
+           "提取结果为参考级，仅用于练习比对，不构成对任何作品的权利主张"]
+        : ["仅支持单声部清唱 / 独奏（无和弦、无复音）",
+           "单声道直通：未做音源分离",
+           "提取结果为参考级，仅用于练习比对，不构成对任何作品的权利主张"]
     },
     frames: frames, target_sr: targetSr
   };
@@ -4961,6 +5160,239 @@ function extractSafeName(){
   return "拔带提取_" + base.replace(/[\\/:*?"<>|\s]+/g, "_").slice(0, 40) + "_v0.6";
 }
 
+/* ================= 拔带 v0.8：五线谱自绘渲染器 + 萨克斯移调 =================
+   内联 SVG 渲染，零外部依赖、零网络请求（不引入 CDN 字体/库）。
+   移调表：萨克斯按「记谱音高」书写，演奏者按本调指法吹奏出实际音高：
+     Alto Eb   ：记谱比实际高 9  半音（谱面 C → 实音 Eb3/Ab 指法体系）
+     Tenor Bb  ：记谱比实际高 14 半音（谱面 C → 实音 Bb2/Ab 指法体系）
+     Soprano Bb：记谱比实际高 14 半音（谱面 C → 实音 Bb4）
+   UI 上「原 C 调旋律」为基准，移调 = 原旋律整体上移对应半音数。 */
+const TRANSPOSE_TABLE = {
+  C:       { label:"原调 C",      interval:0,  desc:"原调 C 记谱（通用谱，任何乐器均可按此视奏）" },
+  alto:    { label:"中音萨克斯 Eb",   interval:9,  desc:"原 C 调 → Eb 调（上移 9 半音），中音萨克斯（Alto）用" },
+  tenor:   { label:"次中音萨克斯 Bb", interval:14, desc:"原 C 调 → Bb 调（上移 14 半音），次中音萨克斯（Tenor）用" },
+  soprano: { label:"高音萨克斯 Bb",  interval:14, desc:"原 C 调 → Bb 调（上移 14 半音），高音萨克斯（Soprano）用" }
+};
+const STAVE_PITCH_NAMES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+const STAVE_FLAT_NAMES  = ["C","Db","D","Eb","E","F","Gb","G","Ab","A","Bb","B"];
+const STAVE_DIATONIC = [0,2,4,5,7,9,11];            /* 自然大调音阶 */
+const STAVE_DEG7 = ["do","re","mi","fa","sol","la","si"];
+const STAVE_KEYSIG = {
+  "C":[], "G":[{step:"F",acc:"#",line:8}], "D":[{step:"F",acc:"#",line:8},{step:"C",acc:"#",line:5}],
+  "A":[{step:"F",acc:"#",line:8},{step:"C",acc:"#",line:5},{step:"G",acc:"#",line:9}],
+  "E":[{step:"F",acc:"#",line:8},{step:"C",acc:"#",line:5},{step:"G",acc:"#",line:9},{step:"D",acc:"#",line:6}],
+  "B":[{step:"F",acc:"#",line:8},{step:"C",acc:"#",line:5},{step:"G",acc:"#",line:9},{step:"D",acc:"#",line:6},{step:"A",acc:"#",line:10}],
+  "F#":[{step:"F",acc:"#",line:8},{step:"C",acc:"#",line:5},{step:"G",acc:"#",line:9},{step:"D",acc:"#",line:6},{step:"A",acc:"#",line:10},{step:"E",acc:"#",line:7}],
+  "C#":[{step:"F",acc:"#",line:8},{step:"C",acc:"#",line:5},{step:"G",acc:"#",line:9},{step:"D",acc:"#",line:6},{step:"A",acc:"#",line:10},{step:"E",acc:"#",line:7},{step:"B",acc:"#",line:12}],
+  "F":[{step:"B",acc:"b",line:4}], "Bb":[{step:"B",acc:"b",line:4},{step:"E",acc:"b",line:7}],
+  "Eb":[{step:"B",acc:"b",line:4},{step:"E",acc:"b",line:7},{step:"A",acc:"b",line:3}],
+  "Ab":[{step:"B",acc:"b",line:4},{step:"E",acc:"b",line:7},{step:"A",acc:"b",line:3},{step:"D",acc:"b",line:6}],
+  "Db":[{step:"B",acc:"b",line:4},{step:"E",acc:"b",line:7},{step:"A",acc:"b",line:3},{step:"D",acc:"b",line:6},{step:"G",acc:"b",line:9}],
+  "Gb":[{step:"B",acc:"b",line:4},{step:"E",acc:"b",line:7},{step:"A",acc:"b",line:3},{step:"D",acc:"b",line:6},{step:"G",acc:"b",line:9},{step:"C",acc:"b",line:5}],
+  "Cb":[{step:"B",acc:"b",line:4},{step:"E",acc:"b",line:7},{step:"A",acc:"b",line:3},{step:"D",acc:"b",line:6},{step:"G",acc:"b",line:9},{step:"C",acc:"b",line:5},{step:"F",acc:"b",line:8}]
+};
+const STAVE_CLEF_G_MIN = 55;   /* 大调 E4(midi 64) 及以下也可用 G 谱；E4+ 用 G 谱 */
+const STAVE_RENDER = {
+  x0: 62, y0: 26, gap: 10, beatX: 30,
+  timeX: 44, ksX: 20, rowGap: 40
+};
+function staveKeySig(keyName){ return STAVE_KEYSIG[keyName] || []; }
+function stavePitchClass(midi){ return ((Math.round(midi) % 12) + 12) % 12; }
+function staveScalePc(tonicPc){ return STAVE_DIATONIC.map(function(d){ return (d + ((tonicPc % 12) + 12) % 12) % 12; }); }
+function staveClefFor(midi){ return (Math.round(midi) >= STAVE_CLEF_G_MIN) ? "G" : "F"; }
+function staveLinePos(step, octave, clef){
+  const baseG = {C:-2,D:-1,E:0,F:1,G:2,A:3,B:4};
+  const baseF = {C:3,D:4,E:5,F:6,G:7,A:8,B:9};
+  const base = (clef === "G") ? baseG : baseF;
+  const refOct = (clef === "G") ? 4 : 3;
+  return base[step] + (octave - refOct) * 7;   /* 白键步单位：0 在五线下线，每线距 2 步 */
+}
+function staveKeyNameFor(tonicPc, mode, interval){
+  let pc = ((Number(tonicPc || 0) + Number(interval || 0)) % 12 + 12) % 12;
+  if (mode === "minor") pc = (pc + 3) % 12;    /* 关系大调记谱 */
+  return STAVE_PITCH_NAMES[pc];
+}
+function solfegeFromNotes(notes, tonicPc){
+  const scale = staveScalePc(tonicPc);
+  const sb = [];
+  notes.forEach(function(n){
+    const pc = stavePitchClass(n.midi);
+    const deg = scale.indexOf(pc);
+    sb.push(deg >= 0 ? STAVE_DEG7[deg] : STAVE_PITCH_NAMES[pc]);
+  });
+  return sb.join(" ");
+}
+function extractTransposeNotes(notes, interval){
+  if (!interval) return notes;
+  return notes.map(function(n){
+    const m = Math.round(n.midi) + interval;
+    return { onset_sec: n.onset_sec, dur_sec: n.dur_sec, midi: m,
+             measure: n.measure, beat: n.beat, cents: n.cents, name: midiToName(m) };
+  });
+}
+/* 内联 SVG 五线谱渲染：返回统计信息 */
+function staveRender(svg, notes, meta, keyName, tonicPc){
+  if (!svg || !notes || !notes.length){ if (svg) svg.innerHTML = ""; return null; }
+  const timeSig = String(meta.time_sig || "4/4");
+  const beatsPerMeasure = Number(meta.beats_per_measure || jianpuBeatsPerMeasure(timeSig));
+  const tempo = Number(meta.tempo_bpm || 90);
+  const secPerBeat = 60.0 / tempo;
+  const ks = staveKeySig(keyName);
+  const scale = staveScalePc(tonicPc);
+  const useFlat = String(keyName || "").indexOf("b") >= 0;
+  const R = STAVE_RENDER, h = R.gap;
+  const yTop = R.y0, yBot = yTop + 4 * h;
+  /* 行切分：每行至多一小节 */
+  const rows = [];
+  let cur = [], curBeats = 0;
+  notes.forEach(function(n){
+    const dur = Math.max(0.25, n.dur_sec / secPerBeat);
+    if (cur.length && curBeats + dur > beatsPerMeasure + 1e-6){ rows.push(cur); cur = []; curBeats = 0; }
+    cur.push({ n: n, dur: dur }); curBeats += dur;
+  });
+  if (cur.length) rows.push(cur);
+  const parts = [];
+  rows.forEach(function(row, ri){
+    const yT = yTop + ri * (yBot - yTop + R.rowGap);
+    const yB = yT + 4 * h;
+    const clef = staveClefFor(row[0].n.midi);
+    let x = R.x0;
+    /* 谱号 */
+    parts.push('<text x="' + (x - 34) + '" y="' + (yT + (clef === "G" ? 31 : 38)) +
+               '" class="stave-clef" font-size="' + (clef === "G" ? 34 : 38) + '">' +
+               (clef === "G" ? "𝄞" : "𝄢") + "</text>");
+    x += R.timeX;
+    /* 拍号 */
+    const num = String(timeSig).split("/")[0] || "4", den = String(timeSig).split("/")[1] || "4";
+    parts.push('<text x="' + (x - 27) + '" y="' + (yT + 14) + '" class="stave-time" font-size="14">' + num + "</text>");
+    parts.push('<text x="' + (x - 27) + '" y="' + (yB - 8) + '" class="stave-time" font-size="14">' + den + "</text>");
+    x += R.ksX;
+    /* 调号 */
+    ks.forEach(function(k){
+      parts.push('<text x="' + (x - 23) + '" y="' + (yT + (4 - k.line / 2) * h + 16) +
+                 '" class="stave-acc" font-size="18">' + (k.acc === "#" ? "♯" : "♭") + "</text>");
+      x += 8;
+    });
+    x += 12;
+    const startX = x;
+    const laid = [];
+    let bx = startX, beatsIn = 0;
+    row.forEach(function(it){
+      laid.push({ x: bx, dur: it.dur, midi: Math.round(it.n.midi) });
+      bx += it.dur * R.beatX; beatsIn += it.dur;
+    });
+    const rowEnd = startX + beatsIn * R.beatX;
+    const lineEnd = rowEnd + 46;
+    for (let li = 0; li < 5; li++){
+      parts.push('<line class="stave-line" x1="' + startX + '" y1="' + (yT + li * h) +
+                 '" x2="' + lineEnd + '" y2="' + (yT + li * h) + '"/>');
+    }
+    parts.push('<line class="stave-bar" x1="' + lineEnd + '" y1="' + yT + '" x2="' + lineEnd + '" y2="' + yB + '"/>');
+    laid.forEach(function(p){
+      const midi = p.midi;
+      const pc = stavePitchClass(midi);
+      const octave = Math.floor(midi / 12) - 1;
+      const pcName = useFlat ? STAVE_FLAT_NAMES[pc] : STAVE_PITCH_NAMES[pc];
+      const step = pcName[0];
+      let acc = "";
+      if (scale.indexOf(pc) < 0) acc = (pcName.length > 1 ? pcName[1] : "");   /* 调内自然音由调号涵盖 */
+      const line = staveLinePos(step, octave, clef);
+      const y = yT + (4 - line / 2) * h;
+      const hollow = p.dur >= 2;                    /* 二分及以上空心 */
+      const mid = (yT + yB) / 2;
+      const up = y >= mid;
+      const stemX = p.x + (up ? 6 : -6);
+      const stemTop = y + (up ? -32 : 0), stemBot = y + (up ? 0 : 32);
+      /* 加线 */
+      if (line < 0){
+        for (let l2 = Math.floor(line / 2) * 2; l2 < 0; l2 += 2){
+          const ly = yT + (4 - l2 / 2) * h;
+          parts.push('<line class="stave-ledger" x1="' + (p.x - 7) + '" y1="' + ly + '" x2="' + (p.x + 13) + '" y2="' + ly + '"/>');
+        }
+      } else if (line > 8){
+        for (let l2 = Math.ceil(line / 2) * 2; l2 > 8; l2 -= 2){
+          const ly = yT + (4 - l2 / 2) * h;
+          parts.push('<line class="stave-ledger" x1="' + (p.x - 7) + '" y1="' + ly + '" x2="' + (p.x + 13) + '" y2="' + ly + '"/>');
+        }
+      }
+      if (acc) parts.push('<text x="' + (p.x - 9) + '" y="' + (y + 5) + '" class="stave-acc" font-size="14">' + acc + "</text>");
+      parts.push('<ellipse class="' + (hollow ? "stave-note hollow" : "stave-note") + '" cx="' + p.x + '" cy="' + y +
+                 '" rx="6" ry="4.6"/>');
+      if (!hollow){
+        parts.push('<line class="stave-stem" x1="' + stemX + '" y1="' + stemTop + '" x2="' + stemX + '" y2="' + stemBot + '"/>');
+      }
+      if (p.dur <= 0.5){
+        const tailY = up ? stemTop : stemBot;
+        parts.push('<path class="stave-stem" d="M ' + stemX + ' ' + tailY + ' q 6 ' + (up ? -9 : 9) + ' 15 ' + (up ? -2 : 2) + '"/>');
+      }
+    });
+    /* 行内小节线（含最后一小节：已画结束线，跳过行尾） */
+    for (let bb = beatsPerMeasure; bb < beatsIn - 1e-6; bb += beatsPerMeasure){
+      const bx2 = startX + bb * R.beatX;
+      parts.push('<line class="stave-bar" x1="' + bx2 + '" y1="' + yT + '" x2="' + bx2 + '" y2="' + yB + '"/>');
+    }
+  });
+  svg.setAttribute("viewBox", "0 0 " + Math.max(720, (R.x0 + 120)) + " " + Math.max(120, rows.length * (5 * h + R.rowGap) + 20));
+  svg.setAttribute("height", Math.max(120, rows.length * (5 * h + R.rowGap) + 20));
+  svg.setAttribute("width", "100%");
+  svg.innerHTML = parts.join("");
+  return { rows: rows.length, notes: notes.length, parts: parts.length, keyName: keyName };
+}
+/* 统一渲染入口：五线谱 + 移调说明 + 首调唱名；移调时同步重写简谱文本 */
+function extractRenderAll(){
+  const r = EXTRACT_STATE.result;
+  const tp = TRANSPOSE_TABLE[EXTRACT_STATE.transposeKey] || TRANSPOSE_TABLE.C;
+  const svg = $("extractStave"), tpNote = $("extractTpNote"), solf = $("extractSolfege");
+  if (!r || !r.notes || !r.notes.length){
+    if (svg) svg.innerHTML = "";
+    if (tpNote) tpNote.textContent = "请先提取旋律，谱面将在提取完成后显示。";
+    if (solf) solf.textContent = "首调唱名：—";
+    return;
+  }
+  const m = r.meta || {};
+  const mode = m.mode || "major";
+  const tonicPc0 = Number(m.tonic_pc || 0);
+  const interval = tp.interval;
+  const tonicPc2 = ((tonicPc0 + interval) % 12 + 12) % 12;
+  const keyName = staveKeyNameFor(tonicPc0, mode, interval);
+  const relPc = (mode === "minor") ? ((tonicPc2 + 3) % 12) : tonicPc2;   /* 小调按关系大调记谱 */
+  const tNotes = extractTransposeNotes(r.notes, interval);
+  let stat = null;
+  if (svg && svg.setAttribute){ stat = staveRender(svg, tNotes, m, keyName, relPc); }
+  if (tpNote){
+    const jpKey = (mode === "minor") ? STAVE_PITCH_NAMES[(tonicPc2 + 3) % 12] : STAVE_PITCH_NAMES[tonicPc2];
+    tpNote.innerHTML = "<b>" + esc(tp.label) + "</b>：" + esc(tp.desc) +
+      " · 记谱调 " + esc(keyName) + " · 简谱 1=" + esc(jpKey) +
+      (interval ? " · 共上移 <b>" + interval + "</b> 半音" : " · 不移调");
+  }
+  if (solf) solf.textContent = "首调唱名：" + solfegeFromNotes(tNotes, relPc);
+  const jpEl = $("extractJianpu");
+  if (interval && jpEl){
+    /* 移调时简谱同步：以移调后音高重写 1=Key（保留原始参考序列不变） */
+    try {
+      const jp = (mode === "minor") ? ((tonicPc2 + 3) % 12) : tonicPc2;
+      jpEl.value = notesToJianpu(tNotes, {
+        tonic_pc: jp, start_octave: Number(m.start_octave || 4),
+        tempo_bpm: Number(m.tempo_bpm || DEFAULT_TEMPO), time_sig: String(m.time_sig || "4/4"),
+        title: "拔带提取 · " + (EXTRACT_STATE.label || "录音") + " · " + tp.label + "（参考级，仅单声部）",
+        looseTime: true
+      });
+    } catch (e){ /* 保留原简谱 */ }
+  } else if (!interval && jpEl){
+    if (EXTRACT_STATE._origJianpu == null) EXTRACT_STATE._origJianpu = jpEl.value;
+    if (EXTRACT_STATE._origJianpu) jpEl.value = EXTRACT_STATE._origJianpu;
+  }
+  return stat;
+}
+function extractSetTranspose(key){
+  EXTRACT_STATE.transposeKey = key;
+  ["tpC","tpAlto","tpTenor","tpSoprano"].forEach(function(id){
+    const b = $(id);
+    if (b) b.classList.toggle("active", b.dataset.tp === key);
+  });
+  extractRenderAll();
+}
+
 function extractApplyResult(r, dtMs){
   const m = r.meta;
   EXTRACT_STATE.result = r;
@@ -4970,7 +5402,7 @@ function extractApplyResult(r, dtMs){
   $("extractJianpu").value = jpText;
   const warn = (m.warnings || []).map(function(w){ return '<span class="warnline">' + esc(w) + "</span>"; }).join("<br>");
   $("extractNote").innerHTML =
-    "<b>提取完成（参考级）</b>：" + esc(m.instrument) + " · 原始 " + r.frames.length + " 帧 → 切分 " +
+    "<b>提取完成（参考级" + (m.from_vocal_track ? " · 基于人声轨分析" : "") + "）</b>：" + esc(m.instrument) + " · 原始 " + r.frames.length + " 帧 → 切分 " +
     m.raw_n_notes + " 音 → 量化后 <b>" + m.n_notes + "</b> 音 · " + esc(m.key_label) + " · " +
     fmtNum(m.tempo_bpm, 1) + " BPM" + (m.tempo_estimated ? "（自动）" : "（手动）") +
     " · 拍号 " + esc(m.time_sig) + " · 网格 1/" + (m.grid_per_beat * 4) + " · 时长 " +
@@ -4979,6 +5411,7 @@ function extractApplyResult(r, dtMs){
     (warn ? "<br>" + warn : "");
   setStatus("拔带提取完成：已生成参考序列（" + m.n_notes + " 音，" + m.key_label + "，" +
             fmtNum(m.tempo_bpm, 1) + " BPM）。", "ok");
+  extractRenderAll();
 }
 
 function extractInit(){
@@ -4991,23 +5424,78 @@ function extractInit(){
   const runEl = $("btnExtractRun");
   if (runEl) runEl.addEventListener("click", function(){
     try {
-      if (!EXTRACT_STATE.audio) throw new Error("请先选择音频文件（清唱 / 单声部独奏）");
-      setStatus("拔带：正在提取单声部旋律…（YIN 逐帧 + 音符切分 + 网格量化）", "");
+      if (!EXTRACT_STATE.audio) throw new Error("请先选择音频文件（人声独唱歌曲 / 清唱 / 独奏）");
+      const split = extractEnsureSplit();
+      const useVocal = (split.mode === "split" && EXTRACT_STATE.vocalTrack && EXTRACT_STATE.vocalTrack.length > 0);
+      setStatus("拔带：正在提取单声部旋律…（" + (useVocal ? "基于人声轨 · " : "单声部直通 · ") + "YIN 逐帧 + 音符切分 + 网格量化）", "");
       const t0 = (window.performance && performance.now) ? performance.now() : Date.now();
       const tempoRaw = parseFloat($("extractTempo").value);
-      const r = extractMelodyFromAudio(EXTRACT_STATE.audio, {
+      const opts = {
         instrument: $("extractSource").value,
         time_sig: $("extractTimeSig").value,
         tempo_bpm: (isFinite(tempoRaw) ? tempoRaw : null),
         key: ($("extractKey").value.trim() || null),
         grid_per_beat: (parseInt($("extractGrid").value, 10) || EXTRACT_GRID_PER_BEAT),
         source_label: EXTRACT_STATE.label || "录音"
-      });
+      };
+      if (useVocal){
+        opts.data = EXTRACT_STATE.vocalTrack;
+        opts.sr = EXTRACT_STATE.audio.sr || 44100;
+        opts.from_vocal_track = true;
+        opts.split_k = Number(EXTRACT_STATE.splitK);
+      }
+      const r = extractMelodyFromAudio(EXTRACT_STATE.audio, opts);
       const dt = ((window.performance && performance.now) ? performance.now() : Date.now()) - t0;
       extractApplyResult(r, dt);
     } catch (e){
       setStatus("拔带提取失败：" + e.message, "err");
       $("extractNote").innerHTML = '<span class="warnline">' + esc(e.message) + "</span>";
+    }
+  });
+
+  const exportWavEl = $("btnExtractExportWav");
+  if (exportWavEl) exportWavEl.addEventListener("click", function(){
+    try { exportAccompWav(); }
+    catch (e){ setStatus("导出纯伴奏失败：" + e.message, "err"); }
+  });
+
+  const pvEl = $("btnExtractPlayVocal");
+  if (pvEl) pvEl.addEventListener("click", function(){
+    try {
+      if (!EXTRACT_STATE.vocalTrack || !EXTRACT_STATE.vocalTrack.length)
+        throw new Error("还没有人声轨：请先导入立体声（人声+伴奏）音频并保持「立体声自动分离」，或点「提取旋律」触发分离");
+      playPcmData(EXTRACT_STATE.vocalTrack, EXTRACT_STATE.audio.sr || 44100, "人声轨（分离结果）");
+    } catch (e){ setStatus("试听人声轨失败：" + e.message, "err"); }
+  });
+
+  const paEl = $("btnExtractPlayAccomp");
+  if (paEl) paEl.addEventListener("click", function(){
+    try {
+      if (!EXTRACT_STATE.accompTrack || !EXTRACT_STATE.accompTrack.length)
+        throw new Error("还没有伴奏轨：请先导入立体声（人声+伴奏）音频并保持「立体声自动分离」，或点「提取旋律」触发分离");
+      playPcmData(EXTRACT_STATE.accompTrack, EXTRACT_STATE.audio.sr || 44100, "伴奏轨（分离结果）");
+    } catch (e){ setStatus("试听伴奏轨失败：" + e.message, "err"); }
+  });
+
+  const smEl = $("extractSplitMode");
+  if (smEl) smEl.addEventListener("change", function(){
+    EXTRACT_STATE.splitMode = smEl.value;
+    if (EXTRACT_STATE.audio){
+      if (EXTRACT_STATE.splitMode === "mono"){ EXTRACT_STATE.vocalTrack = null; EXTRACT_STATE.accompTrack = null; }
+      else { extractEnsureSplit(); }
+      extractSplitInfoUpdate();
+    }
+  });
+  const skEl = $("extractSplitK");
+  if (skEl) skEl.addEventListener("change", function(){
+    let k = parseFloat(skEl.value);
+    if (!isFinite(k)) k = 0.6;
+    if (k < 0.5) k = 0.5; else if (k > 0.7) k = 0.7;
+    skEl.value = k;
+    EXTRACT_STATE.splitK = k;
+    if (EXTRACT_STATE.audio && EXTRACT_STATE.splitMode === "auto"){
+      extractEnsureSplit();
+      extractSplitInfoUpdate();
     }
   });
 
@@ -5044,6 +5532,12 @@ function extractInit(){
   const gridEl = $("extractGrid");
   if (gridEl) gridEl.addEventListener("change", function(){
     if (EXTRACT_STATE.result) setStatus("量化网格已改为 1/" + (parseInt(this.value, 10) * 4 || 16) + "，请重新点「提取单声部旋律」生效。", "");
+  });
+
+  /* 萨克斯移调按钮组 */
+  ["tpC","tpAlto","tpTenor","tpSoprano"].forEach(function(id){
+    const b = $(id);
+    if (b) b.addEventListener("click", function(){ extractSetTranspose(this.dataset.tp || "C"); });
   });
 }
 
@@ -5145,7 +5639,17 @@ async function decodeAudioFile(file){
         const d = ab.getChannelData(c);
         for (let i = 0; i < d.length; i++) mono[i] += d[i] / ch;
       }
-      return { data: mono, sr: ab.sampleRate };
+      /* 保留前两声道用于 mid/side 中置声道分离（立体声最常见；多声道也取前二近似） */
+      let channels = null;
+      if (ch > 1){
+        channels = [];
+        const maxC = Math.min(2, ch);
+        for (let c = 0; c < maxC; c++){
+          const d = ab.getChannelData(c);
+          channels.push(new Float32Array(d));
+        }
+      }
+      return { data: mono, sr: ab.sampleRate, channels: channels, nChannels: ch };
     } catch (e){ lastErr = e; }
     finally { if (ctx && ctx.close) { try { ctx.close(); } catch (e2){} } }
   }
