@@ -66,6 +66,14 @@
   .note[data-live="ok"]{color:#0a7d33}
   .note[data-live="err"]{color:#b3261e}
   .note[data-live="warn"]{color:#8a5a00}
+  .help-ico{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#0b6bff;color:#fff;font-size:14px;font-weight:700;cursor:pointer;flex:0 0 auto;line-height:1;user-select:none;vertical-align:middle}
+  .help-ico:active{opacity:.75}
+  .help-body{margin-top:8px;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;font-size:13px;line-height:1.8;color:var(--dim)}
+  .mode-big .tab{display:flex;flex-direction:column;gap:2px;padding:14px 10px;font-size:18px;font-weight:700;min-height:64px;align-items:center;justify-content:center}
+  .mode-big .tab span{font-size:12px;font-weight:400;color:var(--dim)}
+  .step-title{display:flex;align-items:center;gap:10px;margin:18px 0 10px;font-size:20px;font-weight:800}
+  .step-title .step-num{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#0b6bff;color:#fff;font-size:15px;flex:0 0 auto}
+  @media(max-width:640px){.mode-big{flex-wrap:wrap}.mode-big .tab{flex:1 1 44%}}
   textarea{background:#0e1117;color:var(--fg);border:1px solid var(--line);border-radius:7px;
        padding:8px;font:13px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace;resize:vertical}
   button.mini{padding:6px 11px;font-size:12.5px;border-radius:6px}
@@ -203,30 +211,36 @@
     </div>
   </div>
 
-  <h1>音准诊断原型 v0.6</h1>
-  <div class="sub">
-    音阶模式（考级音阶/琶音 · 程序化生成） + 曲目模式（MusicXML / MIDI / 文本简谱导入） +
-    曲库模式（235 首元数据 · 参考序列包） + 拔带模式（清唱 / 独奏单声部提取，参考级）<br>
-    DTW 对齐 · 音准 / 错音 / 漏音 / 节奏 / 完整性 五维诊断 · 单文件离线运行，音频不上传任何服务器<br>
-    <span class="kv">快捷键：<b>Ctrl/⌘ + 1/2/3/4</b> 切到音阶 / 曲目 / 曲库 / 拔带 · <b>Ctrl/⌘ + Enter</b> 执行当前模式主操作 ·
-      <b>Space</b> 试听 / 停止当前参考序列 · <b>Ctrl/⌘ + S</b> 导出当前简谱（.txt）· <b>Esc</b> 停止试听 ·
-      支持把乐谱 / 音频 / 参考序列包 .json 文件直接拖进对应区域；输入框内不拦截 <b>Space</b></span>
+  <h1 style="margin:0">音准诊断 · 专业版</h1>
+  <div class="sub" style="margin:4px 0 0;display:flex;align-items:flex-start;gap:8px">
+    <span id="proHelpIco" class="help-ico" title="使用说明">?</span>
+    <span style="color:var(--dim)">有问题点 <b>?</b> 图标</span>
+  </div>
+  <div id="proHelpBody" class="help-body hidden">
+    <b>这是什么：</b>把「要练的音」和「你吹的录音」放在一起比对，找出哪里吹不准、漏了音、节奏不稳。<br>
+    <b>四个练习内容：</b>① 音阶练习（哆来咪爬音，自动生成）· ② 曲目练习（导入你自己的乐谱）· ③ 曲库（自带 235 首歌可选）· ④ 拔带（从你自己的录音里变出谱）。<br>
+    <b>三步操作：</b>第 1 步选练习内容 → 第 2 步上传或录音 → 第 3 步看结果。全部按钮都很大，照着点就行。<br>
+    <b>怎么看结果：</b>分数越高越准；绿色=准，红色=偏高偏低，黄色=漏音或没被识别。<br>
+    <b>快捷键（可不记）：</b>Ctrl/⌘+1/2/3/4 切模式 · Ctrl/⌘+Enter 执行 · Space 试听 · Ctrl/⌘+S 导出简谱 · Esc 停止。<br>
+    <b>隐私：</b>单文件离线运行，音频不上传任何服务器，打卡只存本机。<br>
+    <b>能力边界：</b>不内置受版权保护的教材乐谱；不推测未核实信息（标「待核」）；只分析单声部独奏；结果均为声学层推测，不替代真人教师。
   </div>
 
   <!-- ============ 1. 模式切换与参考来源 ============ -->
   <div class="card">
-    <div class="tabs">
-      <button class="tab active" id="tabScale">音阶模式</button>
-      <button class="tab" id="tabPiece">曲目模式</button>
-      <button class="tab" id="tabLib">曲库模式</button>
-      <button class="tab" id="tabExtract">拔带模式</button>
+    <div class="step-title"><span class="step-num">1</span>选择练习内容</div>
+    <div class="tabs mode-big">
+      <button class="tab active" id="tabScale">音阶练习<br><span>哆来咪爬音</span></button>
+      <button class="tab" id="tabPiece">曲目练习<br><span>按歌谱练</span></button>
+      <button class="tab" id="tabLib">曲库<br><span>自带歌曲选</span></button>
+      <button class="tab" id="tabExtract">拔带<br><span>从录音变谱</span></button>
     </div>
 
     <!-- ---- 音阶模式 ---- -->
     <div id="scalePanel" style="margin-top:14px">
       <div class="row">
         <div class="field">
-          <label>考级机构（内嵌 catalog/grade_catalog.json）</label>
+          <label>考级机构</label>
           <select id="instSel"></select>
         </div>
         <div class="field">
@@ -245,7 +259,7 @@
       <div class="note" id="instNote"></div>
 
       <div style="margin-top:12px">
-        <label>调性（按所选级别已核实的调性；「待核」机构不提供调性，系统拒绝推测）</label>
+        <label>调性</label>
         <div id="keyBox" class="chips"></div>
       </div>
       <div style="margin-top:12px">
@@ -255,11 +269,11 @@
 
       <div class="row" style="margin-top:12px">
         <div class="field">
-          <label>速度（BPM，仅用于参考序列时间轴）</label>
+          <label>速度（BPM）</label>
           <input type="number" id="tempo" min="30" max="200" step="1" value="60">
         </div>
         <div class="field">
-          <label>萨克斯型号（书写音 → 发声音）</label>
+          <label>萨克斯型号</label>
           <select id="saxType"></select>
         </div>
         <div class="field">
@@ -284,8 +298,8 @@
       </div>
 
       <div class="row" style="margin-top:14px">
-        <button id="btnGenScale">生成参考序列</button>
-        <button class="ghost" id="btnSynthScale">用参考序列合成示范音</button>
+        <button id="btnGenScale">生成练习内容</button>
+        <button class="ghost" id="btnSynthScale">听示范音</button>
       </div>
       <div class="note" id="scaleRefNote">尚未生成参考序列。选择机构 / 级别 / 调性后点「生成参考序列」。</div>
       <div class="pending hidden" id="scalePending"></div>
@@ -295,12 +309,12 @@
     <div id="piecePanel" class="hidden" style="margin-top:14px">
       <div class="row">
         <div class="field dropzone" id="scoreDrop">
-          <label>参考谱文件（.musicxml / .xml / .mid / .midi / .txt / .csv）</label>
+          <label>参考谱文件</label>
           <input type="file" id="scoreFile" accept=".musicxml,.xml,.mid,.midi,.txt,.csv,.tsv">
           <div class="dropHint">也可以把乐谱文件直接拖到这里</div>
         </div>
         <div class="field">
-          <label>谱面口径（书写音 / 发声音）</label>
+          <label>谱面口径</label>
           <select id="scorePitch">
             <option value="auto" selected>auto（谱面自带 &lt;transpose&gt; 优先，否则按型号转）</option>
             <option value="written">written（按书写音理解并转调）</option>
@@ -312,7 +326,7 @@
           <select id="saxTypePiece"></select>
         </div>
         <div class="field">
-          <label>记谱类型（决定文本谱走哪个解析器）</label>
+          <label>记谱类型</label>
           <select id="scoreFormat">
             <option value="auto" selected>auto（按扩展名自动判断）</option>
             <option value="musicxml">MusicXML / XML</option>
@@ -323,7 +337,7 @@
       </div>
       <div class="row" style="margin-top:10px">
         <div class="field" style="flex:3 1 320px">
-          <label>或直接粘贴简谱文本（不必存成文件；表头可选，如 1=G / 4/4 / BPM=72）</label>
+          <label>或直接粘贴简谱文本</label>
           <textarea id="scorePaste" style="width:100%;height:104px"
             placeholder="1=G  4/4  BPM=72&#10;5 5 6 5 | 3 2 1 - | ..."></textarea>
         </div>
@@ -338,13 +352,13 @@
       </div>
       <div class="row" style="margin-top:10px">
         <div class="field dropzone" id="refJsonDrop" style="flex:3 1 320px">
-          <label>参考序列包 .json（v0.5 参考序列 schema；导入即成为当前参考序列）</label>
-          <div class="dropHint">把 .json 参考序列包拖到这里，或点顶部参考条的「导入 .json」；包内不含任何乐谱排版内容</div>
+          <label>参考序列包 .json</label>
+          <div class="dropHint">把 .json 参考序列包拖到这里</div>
         </div>
       </div>
       <div class="row" style="margin-top:14px">
-        <button id="btnLoadScore">解析乐谱</button>
-        <button class="ghost" id="btnSynthPiece">用参考谱合成示范音</button>
+        <button id="btnLoadScore">读取乐谱</button>
+        <button class="ghost" id="btnSynthPiece">听示范音</button>
       </div>
       <div class="note" id="scoreNote">
         系统不内置任何受版权保护的教材乐谱：曲目参考序列一律由你导入自持授权的 MusicXML / MIDI / 文本简谱获得。
@@ -359,18 +373,15 @@
 
     <!-- ---- 拔带模式（清唱/独奏单声部旋律提取；仅限用户自持素材，输出为参考级） ---- -->
     <div id="extractPanel" class="hidden" style="margin-top:14px">
-      <div class="note">
-        拔带（扒带）栏：从你自己持有或已获授权的<strong>单声部</strong>录音（清唱、独奏）中提取音高序列，生成参考级简谱 / MusicXML / MIDI。
-        本栏不做音源分离、不做复音与和弦提取；提取结果一律标注「参考级」，只用于练习比对，不构成对任何作品的权利主张。
-      </div>
+      <div class="note">拔带：从你自己的清唱 / 独奏录音里提取音高，变成可练的参考谱（仅限你自持的素材）。</div>
       <div class="row">
         <div class="field dropzone" id="extractDrop" style="flex:2 1 240px">
-          <label>音频文件（清唱 / 单声部独奏）</label>
+          <label>音频文件</label>
           <input type="file" id="extractFile" accept="audio/*">
           <div class="dropHint">也可以把音频文件直接拖到这里（wav / mp3 / m4a / ogg 等）</div>
         </div>
         <div class="field">
-          <label>声源（决定 YIN 音域与切分参数）</label>
+          <label>声源</label>
           <select id="extractSource">
             <option value="vocal" selected>人声（清唱 65–1050 Hz）</option>
             <option value="sax">萨克斯（200–1000 Hz）</option>
@@ -391,11 +402,11 @@
           </select>
         </div>
         <div class="field">
-          <label>速度 BPM（留空 = 按音间间隔自动估计）</label>
+          <label>速度 BPM</label>
           <input type="number" id="extractTempo" min="30" max="240" step="1" placeholder="自动">
         </div>
         <div class="field">
-          <label>调性（留空 = 按最省升降号自动判断）</label>
+          <label>调性</label>
           <input type="text" id="extractKey" placeholder="如 C / G / F / bB">
         </div>
         <div class="field">
@@ -408,17 +419,17 @@
         </div>
       </div>
       <div class="row" style="margin-top:14px">
-        <button id="btnExtractRun">提取单声部旋律</button>
+        <button id="btnExtractRun">提取旋律</button>
         <button class="ghost" id="btnExtractPlay">试听提取结果</button>
         <button class="ghost" id="btnExtractStop">停止</button>
-        <button class="ghost" id="btnExtractJianpu">生成简谱文本</button>
+        <button class="ghost" id="btnExtractJianpu">变简谱</button>
         <button class="ghost" id="btnCopyExtract">复制简谱</button>
-        <button class="ghost" id="btnExtractXml">下载 MusicXML</button>
+        <button class="ghost" id="btnExtractXml">下载乐谱</button>
         <button class="ghost" id="btnExtractMidi">下载 MIDI</button>
       </div>
       <div class="row" style="margin-top:10px">
         <div class="field" style="flex:0 1 auto">
-          <label>八度整体微调（YIN 偶发八度误判时手动修正；试听后确认）</label>
+          <label>八度整体微调</label>
           <div class="rb-r">
             <button class="ghost mini" id="btnExtractOctDown">降一个八度</button>
             <button class="ghost mini" id="btnExtractOctUp">升一个八度</button>
@@ -437,7 +448,7 @@
     <div id="libPanel" class="hidden" style="margin-top:14px">
       <div class="row">
         <div class="field" style="flex:2 1 240px">
-          <label>检索（曲名 / 别名，235 首元数据已内嵌，可离线用）</label>
+          <label>检索曲名</label>
           <input type="text" id="libQ" placeholder="如：小星星 / 夜曲 / 民歌">
         </div>
         <div class="field">
@@ -445,11 +456,11 @@
           <select id="libGenre"></select>
         </div>
         <div class="field">
-          <label>参考序列获取路径</label>
+          <label>参考序列</label>
           <select id="libRoute"></select>
         </div>
         <div class="field">
-          <label>来源书目</label>
+          <label>来源</label>
           <select id="libBook"></select>
         </div>
       </div>
@@ -473,10 +484,7 @@
   <!-- ============ 1b. 练习打卡（只存本机，不上传） ============ -->
   <div class="card hidden" id="libCheckinCard">
     <h2>练习打卡台账</h2>
-    <div class="note" style="margin-top:0">
-      只写入本机浏览器 localStorage，不联网、不上传；导出的是纯文本 CSV / JSON，
-      单条记录约 90 字节，1000 条约 90 KB。
-    </div>
+    <div class="note" style="margin-top:0">只存本机，不上传。</div>
     <div class="row" style="margin-top:12px">
       <div class="field" style="flex:2 1 200px">
         <label>曲目（点上方曲库条目可自动填入）</label>
@@ -524,10 +532,11 @@
 
 
   <!-- ============ 2. 音源与全局参数 ============ -->
+  <div class="step-title"><span class="step-num">2</span>上传或录音</div>
   <div class="card">
     <div class="row">
       <div class="field">
-        <label>乐器（锁定音色，决定 f0 音域与采样率分档）</label>
+        <label>乐器</label>
         <select id="instrument">
           <option value="sax">萨克斯</option>
           <option value="violin">小提琴</option>
@@ -537,7 +546,7 @@
         </select>
       </div>
       <div class="field">
-        <label>演奏水平（决定容差）</label>
+        <label>演奏水平</label>
         <select id="level">
           <option value="beginner">启蒙</option>
           <option value="mid" selected>中级</option>
@@ -560,23 +569,23 @@
     </div>
     <div class="row" style="margin-top:12px">
       <div class="field">
-        <label>合成示范音的注入偏差（音分，正=偏高；0 = 无偏差）</label>
+        <label>合成示范音偏差</label>
         <input type="number" id="injectCents" min="-80" max="80" step="1" value="0">
       </div>
     </div>
     <div class="field dropzone" id="appAudioDrop" style="margin-top:14px">
-      <label>上传音乐 / 音频文件（你的演奏录音，用于音准诊断）</label>
+      <label>上传你的演奏录音</label>
       <button type="button" id="btnFileBig">上传音乐文件</button>
-      <div class="dropHint">支持 wav / mp3 / m4a / ogg / flac / aac 等常见格式，也可把音频文件直接拖到这里；手机浏览器点上方按钮即可选择音频。音频只在你的浏览器本地解码，不上传任何服务器。若点按钮没反应，请用系统浏览器（Edge / Chrome / Safari）打开本站。</div>
+      <div class="dropHint">支持 wav / mp3 / m4a / ogg 等格式；音频只在本地处理，不上传。</div>
     </div>
     <div class="row" style="margin-top:16px">
-      <button id="btnRun">开始诊断（对齐参考序列）</button>
+      <button id="btnRun">开始诊断</button>
       <button id="btnFile" class="ghost">选择音频文件</button>
       <button id="btnRec" class="ghost">开始录音</button>
       <button id="btnDemo" class="ghost">生成无参考测试音</button>
       <input type="file" id="file" accept="audio/*" class="hidden">
     </div>
-    <div class="status" id="status">待机。先在上方选择参考来源（音阶模式生成 / 曲目模式导入 / 曲库载入），再点下方「上传音乐文件」或「开始录音」提供演奏音频。</div>
+    <div class="status" id="status">待机。先选好练习内容，再上传或录音。</div>
   </div>
 
   <!-- ============ 3. 诊断概览 ============ -->
@@ -588,7 +597,7 @@
 
   <!-- ============ 4. 待核 / 未支持标注 ============ -->
   <div class="card hidden" id="pendingCard">
-    <h2>「待核 / 未支持」标注（不得当作官方要求）</h2>
+    <h2>待核标注</h2>
     <div class="pending" id="pendingBody"></div>
   </div>
 
@@ -601,14 +610,14 @@
 
   <!-- ============ 6. 逐音诊断 ============ -->
   <div class="card hidden" id="perNoteCard">
-    <h2>逐音诊断（对齐后的每一个音）</h2>
+    <h2>逐音诊断</h2>
     <div class="scroll"><table id="perNoteTable"></table></div>
     <div class="note" id="perNoteNote"></div>
   </div>
 
   <!-- ============ 7. 问题清单 ============ -->
   <div class="card hidden" id="issuesCard">
-    <h2>问题清单：错音 / 漏音 / 多音 / 长音尾端掉音 / 难点小节</h2>
+    <h2>问题清单</h2>
     <div id="issues"></div>
   </div>
 
@@ -622,15 +631,12 @@
   <div class="card hidden" id="chartCard">
     <h2>音高偏差轨迹</h2>
     <canvas id="chart" width="1800" height="440"></canvas>
-    <div class="note">
-      纵轴为音分偏差（正=偏高，负=偏低），绿带为当前容差范围，横轴为时间。
-      灰点表示未检测到有效基频（静音或噪声）。
-    </div>
+    <div class="note">绿带 = 音准范围；点越高越偏高，越低越偏低，灰点 = 没吹响。</div>
   </div>
 
   <!-- ============ 10. 文本报告 / 自检 ============ -->
   <div class="card hidden" id="textCard">
-    <h2>文本报告（与 engine/diagnose.py render_text 同口径）</h2>
+    <h2>文本报告</h2>
     <pre id="textReport"></pre>
   </div>
 
@@ -639,26 +645,21 @@
     <div class="row">
       <button class="ghost" id="btnSelftest">运行浏览器内自检</button>
     </div>
-    <div class="note" id="selftestNote">
-      自检覆盖：①两侧参数口径（INSTRUMENTS / 采样率分档 / 窗口 / YIN 阈值 / 对齐与诊断阈值）；
-      ②考级曲库机构×级别调性数据与「待核」标注；③音阶/琶音参考序列生成；④MusicXML / MIDI 解析；
-      ⑤DTW 对齐与五维诊断；⑥音频链路端到端（合成音 → 抗混叠降采样 → YIN → 切分 → 对齐 → 报告）。
-    </div>
+    <div class="note" id="selftestNote">自动检查功能是否正常，约需几秒。</div>
     <div class="hidden" id="selftestWrap"><pre id="selftestOut"></pre></div>
   </div>
 
   <div class="note" style="border-top:1px solid var(--line);padding-top:14px;margin-top:22px">
-    <b>能力边界与合规边界（必须遵守）</b><br>
-    1. <b>不内置受版权保护的教材乐谱</b>：考级教材的编排、练习曲、编订版乐谱均不在系统内。
-    音阶 / 琶音只由「调性 + 音域 + 演奏法」规定，不含受版权保护的编排，故由规则程序化生成；
-    曲目参考序列一律由使用者导入自持授权的 MusicXML / MIDI。<br>
-    2. <b>不推测未核实信息</b>：机构级别结构与调性数据来自公开渠道，未获取到公开明细的一律用
-    verified=false + 「待核」显式标注，系统拒绝为「待核」机构生成调性（宁可让你显式指定，也不生成一个
-    看起来像官方要求的错参考）。<br>
-    3. 仅分析单声部独奏；多人合奏的逐件乐器分离不支持，给出结果必然错误。<br>
-    4. 「漏音」判据是「参考该响的音，在演奏音符序列里没找到对应」，也可能是未被检出（气息不足未出声、
-    能量门限滤掉弱奏、音高超出引擎检测音域），故一律标注「漏音或未被检出（需复核）」，不武断判定漏吹。<br>
-    5. 全部输出为「声学层推测」，不做病因断言（如手型、指法、气息）；不替代真人教师，定位为课后练习辅助。
+    <b>说明</b>
+    <span id="edgeHelpIco" class="help-ico" title="能力边界与合规说明">?</span>
+    <div id="edgeHelpBody" class="help-body hidden">
+      <b>能力边界与合规边界</b><br>
+      1. 不内置受版权保护的教材乐谱：考级教材的编排、练习曲、编订版乐谱均不在系统内；音阶/琶音由规则程序化生成，曲目参考序列由使用者导入自持授权的 MusicXML / MIDI。<br>
+      2. 不推测未核实信息：未获取到公开明细的机构一律「待核」标注，系统拒绝为「待核」机构生成调性。<br>
+      3. 仅分析单声部独奏；多人合奏的逐件乐器分离不支持。<br>
+      4. 「漏音」可能是未被检出（气息不足、弱奏被过滤、音高超出检测范围），一律标注「漏音或未被检出（需复核）」，不武断判定。<br>
+      5. 全部输出为「声学层推测」，不做病因断言；不替代真人教师，定位为课后练习辅助。
+    </div>
   </div>
 
   </div><!-- /fullApp -->
@@ -5530,6 +5531,17 @@ function buildTestMidi(pitches, tpq){
 }
 
 /* ---------- G9. 事件绑定与初始化 ---------- */
+function toggleHelp(id){
+  var el = $(id);
+  if (el) el.classList.toggle("hidden");
+}
+function bindHelp(icoId, bodyId){
+  var ico = $(icoId), body = $(bodyId);
+  if (ico && body) ico.addEventListener("click", function(ev){ ev.stopPropagation(); toggleHelp(bodyId); });
+}
+bindHelp("proHelpIco", "proHelpBody");
+bindHelp("edgeHelpIco", "edgeHelpBody");
+
 function switchMode(mode){
   APP.mode = mode;
   $("tabScale").classList.toggle("active", mode === "scale");
