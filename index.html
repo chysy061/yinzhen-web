@@ -583,6 +583,7 @@
       <button id="btnFile" class="ghost">选择音频文件</button>
       <button id="btnRec" class="ghost">开始录音</button>
       <button id="btnDemo" class="ghost">生成无参考测试音</button>
+      <button id="btnUploadSelftest" class="ghost" title="自动检查所有上传入口与解码链路">上传自检</button>
       <input type="file" id="file" accept="audio/*" class="hidden">
     </div>
     <div class="status" id="status">待机。先选好练习内容，再上传或录音。</div>
@@ -4828,25 +4829,122 @@ function defaultScaleRef(){
   return r;
 }
 
+/* 音频文件头签名探测：识别真实格式，用于精准报错 */
+function probeAudioSig(buf){
+  if (!buf || buf.byteLength < 12) return { err: "文件为空或过小，不是有效的音频文件（0 字节或不足 12 字节）。请重新选择。" };
+  const dv = new DataView(buf);
+  const tag = function(o, s){
+    for (let i = 0; i < s.length; i++){ if (dv.getUint8(o + i) !== s.charCodeAt(i)) return false; }
+    return true;
+  };
+  if (tag(0, "RIFF") && tag(8, "WAVE")) return { fmt: "wav", name: "WAV" };
+  if (tag(0, "ID3")) return { fmt: "mp3", name: "MP3" };
+  if ((dv.getUint8(0) & 0xFF) === 0xFF && (dv.getUint8(1) & 0xE0) === 0xE0) return { fmt: "mp3", name: "MP3" };
+  if (tag(4, "ftyp")) return { fmt: "m4a", name: "M4A/AAC" };
+  if (tag(0, "OggS")) return { fmt: "ogg", name: "OGG" };
+  if (tag(0, "fLaC")) return { fmt: "flac", name: "FLAC" };
+  return { fmt: "unknown", name: "未知格式" };
+}
+
+/* 解码失败分类提示（按探测到的真实格式给出可操作建议） */
+function describeDecodeFailure(sig, file, lastErr){
+  const sizeMB = file && file.size ? (file.size / 1048576).toFixed(1) : "?";
+  const base = "文件「" + (file ? file.name : "音频") + "」解码失败（" + sizeMB + " MB，检测为" + sig.name + "）。";
+  const hint = {
+    mp3:  "它看起来是 MP3，但浏览器无法解码，多为特殊编码（如 MPEG 2.5/变体、采样率 8kHz、VBR 异常）或文件已损坏。请用转换工具重新导出为标准 MP3（44100Hz/128kbps 以上）或 WAV，再上传。",
+    wav:  "WAV 解码失败，多为位深/编码不支持（如 24bit、32bit float、IEEE float、ADPCM）或文件截断损坏。请重新导出为 16bit PCM WAV 或 MP3 后重试。",
+    m4a:  "M4A/AAC 编码与当前浏览器不完全兼容（常见于旧机型 Safari/部分安卓浏览器）。请转成 MP3 或 WAV 后重试。",
+    ogg:  "OGG 文件使用了当前浏览器不支持的编码（Opus/Vorbis 兼容性差异）。请转成 MP3 或 WAV 后重试。",
+    flac: "FLAC 无损格式部分浏览器不支持解码。请转成 MP3 或 WAV 后重试。",
+    unknown: "无法识别该文件的真实格式（文件头不是常见音频签名）。它可能不是音频，或已损坏。请转成标准 MP3（44100Hz）或 16bit WAV 后重试。"
+  }[sig.fmt] || "请转成标准 MP3 或 16bit WAV 后重试。";
+  return base + hint + "（原始错误：" + (lastErr && lastErr.message || "Decoding failed") + "）";
+}
+
 async function decodeAudioFile(file){
   const buf = await file.arrayBuffer();
   const AC = window.AudioContext || window.webkitAudioContext;
   if (!AC) throw new Error("当前浏览器不支持 Web Audio API");
-  const ctx = new AC();
-  let ab;
-  try {
-    ab = await ctx.decodeAudioData(buf.slice(0));
-  } finally {
-    if (ctx.close) ctx.close();
+  const sig = probeAudioSig(buf);
+  if (sig.err) throw new Error(sig.err);
+
+  let lastErr = null;
+  /* 多级回退：①新上下文直解 → ②复制缓冲重解（规避 Safari 一次性缓冲缺陷）→ ③再新建上下文 + 复制重解 */
+  for (let attempt = 0; attempt < 3; attempt++){
+    let ctx = null;
+    try {
+      ctx = new AC();
+      const ab = await ctx.decodeAudioData(buf.slice(0));
+      const ch = ab.numberOfChannels;
+      const mono = new Float32Array(ab.length);
+      for (let c = 0; c < ch; c++){
+        const d = ab.getChannelData(c);
+        for (let i = 0; i < d.length; i++) mono[i] += d[i] / ch;
+      }
+      return { data: mono, sr: ab.sampleRate };
+    } catch (e){ lastErr = e; }
+    finally { if (ctx && ctx.close) { try { ctx.close(); } catch (e2){} } }
   }
-  const ch = ab.numberOfChannels;
-  const mono = new Float32Array(ab.length);
-  for (let c = 0; c < ch; c++){
-    const d = ab.getChannelData(c);
-    for (let i = 0; i < d.length; i++) mono[i] += d[i] / ch;
-  }
-  return { data: mono, sr: ab.sampleRate };
+  throw new Error(describeDecodeFailure(sig, file, lastErr));
 }
+
+/* ---------- 上传自检：合成 440Hz WAV → 走真实解码链路；并检查所有上传入口 ---------- */
+function makeTestWavFile(){
+  const sr = 44100, dur = 1.0, n = Math.floor(sr * dur);
+  const data = new DataView(new ArrayBuffer(44 + n * 2));
+  const w = function(o, s){ for (let i = 0; i < s.length; i++) data.setUint8(o + i, s.charCodeAt(i)); };
+  w(0, "RIFF"); data.setUint32(4, 36 + n * 2, true); w(8, "WAVE");
+  w(12, "fmt "); data.setUint32(16, 16, true); data.setUint16(20, 1, true); data.setUint16(22, 1, true);
+  data.setUint32(24, sr, true); data.setUint32(28, sr * 2, true); data.setUint16(32, 2, true); data.setUint16(34, 16, true);
+  w(36, "data"); data.setUint32(40, n * 2, true);
+  for (let i = 0; i < n; i++){ data.setInt16(44 + i * 2, Math.round(Math.sin(2 * Math.PI * 440 * i / sr) * 0.3 * 32767), true); }
+  return new File([data.buffer], "selftest_440hz.wav", { type: "audio/wav" });
+}
+async function runUploadSelftest(){
+  const btn = $("btnUploadSelftest");
+  if (btn) btn.disabled = true;
+  if (btn) btn.textContent = "自检中…";
+  const out = [];
+  const checks = [
+    ["诊断区大按钮 btnFileBig", !!$("btnFileBig")],
+    ["选择音频文件 btnFile", !!$("btnFile")],
+    ["文件输入 file", !!$("file")],
+    ["拖拽区 appAudioDrop", !!$("appAudioDrop")],
+    ["录音 btnRec", !!$("btnRec")],
+    ["简易版选择文件 sBtnFile", !!$("sBtnFile")],
+    ["简易版文件输入 sFile", !!$("sFile")],
+    ["拔带音频 extractFile", !!$("extractFile")],
+    ["解码函数 decodeAudioFile", typeof decodeAudioFile === "function"],
+    ["WebAudio 支持", !!(window.AudioContext || window.webkitAudioContext)]
+  ];
+  let ok = true;
+  checks.forEach(function(c){ if (!c[1]) ok = false; out.push((c[1] ? "OK  " : "FAIL ") + c[0]); });
+  try {
+    const a = await decodeAudioFile(makeTestWavFile());
+    const okDur = a.data.length / a.sr > 0.8 && isFinite(a.sr) && a.sr > 0;
+    if (!okDur) ok = false;
+    out.push((okDur ? "OK  " : "FAIL ") + "解码链路：合成 440Hz WAV 解码成功（" + fmtNum(a.data.length / a.sr, 2) + " s @ " + a.sr + " Hz）");
+  } catch (e){
+    ok = false;
+    out.push("FAIL 解码链路：" + e.message);
+  }
+  let el = $("uploadSelftestOut");
+  if (!el){
+    el = document.createElement("div");
+    el.id = "uploadSelftestOut";
+    el.className = "note";
+    const st = $("status");
+    (st ? st.parentElement : document.body).appendChild(el);
+  }
+  el.innerHTML = "<b>上传自检报告</b>：" + (ok ? "全部通过，所有上传通道可用。" : "存在失败项，请按下面 FAIL 项排查。") + "<br>" + out.join("<br>");
+  setStatus("上传自检：" + (ok ? "全部通过。" : "存在失败项。"), ok ? "ok" : "err");
+  if (btn){ btn.disabled = false; btn.textContent = "上传自检"; }
+  return ok;
+}
+(function(){
+  const b = $("btnUploadSelftest");
+  if (b) b.addEventListener("click", function(){ runUploadSelftest(); });
+})();
 
 /* 诊断区「上传音乐 / 音频文件」统一入口：选择文件与拖拽共用 */
 async function loadAppAudioFile(f){
@@ -4860,7 +4958,9 @@ async function loadAppAudioFile(f){
       setStatus("音乐已就绪：" + APP.audioLabel + "。还差参考序列：请先在「音阶 / 曲目 / 曲库」模式载入参考谱，或在「拔带」模式从这段音频提取参考级旋律，再回来点「开始诊断」。", "");
     }
   } catch (e){
-    setStatus("音频解码失败：" + e.message + "。常见原因：格式不被浏览器支持或文件损坏。建议使用 wav / mp3 / m4a / ogg，文件不超过 100MB；可先转成 mp3 后重试。", "err");
+    const msg = "音频解码失败：" + e.message;
+    setStatus(msg, "err");
+    throw e;
   }
 }
 
@@ -5708,7 +5808,9 @@ init();
   function simpleLoadAudio(f){
     if (!f) return;
     setSimpleStatus("正在读取音频…", "");
-    loadAppAudioFile(f);
+    loadAppAudioFile(f).catch(function(e){
+      setSimpleStatus("音频解码失败：" + e.message, "err");
+    });
     waitAudio(function(){
       setSimpleStatus("音频已就绪，正在分析…", "ok");
       simpleRun();
