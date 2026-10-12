@@ -378,6 +378,13 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
 .s-speakask .mini{font-size:14px;padding:8px 16px;min-height:40px;margin:2px 4px}
 .s-checkin{background:#FF9500;color:#fff;font-size:19px;margin-top:8px}
 .s-checkinmsg{margin-top:8px;font-size:15px;color:#1E8E5A;text-align:center;font-weight:700}
+.s-extra{margin-top:14px;padding:12px;border:1px dashed #d0c8b8;border-radius:12px;background:rgba(255,255,255,.5)}
+.s-extra-h{font-weight:800;font-size:16px;margin:8px 0 4px;color:var(--fg)}
+.s-extra-b{font-size:16px;line-height:1.6;margin-bottom:4px}
+.s-extra-note{margin-top:10px;font-size:13px;color:#8a8378;text-align:center}
+#simpleWrap.bigtext .s-extra-h{font-size:19px}
+#simpleWrap.bigtext .s-extra-b{font-size:18px}
+#simpleWrap.bigtext .s-extra-note{font-size:15px}
 .result-nav{position:sticky;top:0;z-index:60;display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;padding:6px 8px;background:rgba(242,243,245,.92);backdrop-filter:blur(6px);border:1px solid rgba(60,60,67,.14);border-radius:10px}
 .result-nav .rn-item{flex:0 0 auto;padding:6px 10px;font-size:13px;font-weight:600;min-height:30px;border-radius:7px;background:#fff;color:#2f6fd0;border:1px solid rgba(60,60,67,.14);cursor:pointer}
 .result-nav .rn-item:hover{opacity:.85}
@@ -484,7 +491,7 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
       </div>
       <input type="file" id="sFile" aria-label="选择音频文件" style="display:none">
       <div class="s-wave" id="sWave"><canvas id="sWaveCanvas" height="96"></canvas></div>
-      <div class="s-pointer hidden" id="sPointer" aria-live="polite">
+      <div class="s-pointer hidden" id="sPointer">
         <div class="s-pointer-head">实时音准</div>
         <div class="s-pointer-note" id="sPointerNote">—</div>
         <canvas id="sPointerCanvas" width="0" height="0"></canvas>
@@ -507,6 +514,22 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
       <button class="sbtn s-again" id="sAgain" aria-label="再唱一次，重新开始"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9a7 7 0 0 1 12-3l2 2"/><path d="M20 15a7 7 0 0 1-12 3l-2-2"/><path d="M18 3v4h-4"/><path d="M6 21v-4h4"/></svg>再唱一次</button>
       <button class="sbtn s-checkin" id="sBtnCheckin" aria-label="今天练完啦，打卡记录"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.6 5.6 6 .7-4.5 4 1.2 5.9L12 16.6 6.7 19.2l1.2-5.9-4.5-4 6-.7z"/></svg>今天练完啦</button>
       <div class="s-checkinmsg" id="sCheckinMsg" aria-live="polite"></div>
+      <!-- D1/D2/D5/D9 简易版增强 -->
+      <div class="s-extra">
+        <div class="s-extra-h">个人音准倾向（最近累计）</div>
+        <div class="s-extra-b" id="sTendencyBody">连续完成几次练习后，这里会告诉你「哪个音总吹不准」。</div>
+        <div class="s-extra-h">本次练习小结</div>
+        <div class="s-extra-b" id="sSessionBody"></div>
+        <div class="row" style="justify-content:center">
+          <button class="sbtn s-share" id="sBtnShare" aria-label="复制练习小结，可发微信"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>复制小结（可发微信）</button>
+        </div>
+        <div class="s-extra-h">明日练习包</div>
+        <div class="s-extra-b" id="sTomorrowBody"></div>
+        <div class="row" style="justify-content:center">
+          <button class="sbtn s-report" id="sBtnReport" aria-label="保存离线诊断报告">保存离线诊断报告</button>
+        </div>
+        <div class="s-extra-note">数据仅存本机，不上传；本工具不替代真人教师。</div>
+      </div>
     </div>
 
     <div style="text-align:center;margin-top:6px">
@@ -524,7 +547,7 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
       </button>
     </div>
 
-  <div class="refbar" id="refBar" aria-live="polite">
+  <div class="refbar" id="refBar">
     <div class="rb-l"><span class="tag" id="refTag">当前参考序列</span>
       <span class="rb-text" id="refText">尚未载入参考序列</span></div>
     <div class="rb-r">
@@ -533,6 +556,11 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
       <button class="ghost mini" id="btnRefExport" title="把当前参考序列导出为 v0.5 参考序列包 .json">导出 .json</button>
       <button class="ghost mini" id="btnRefImport" title="导入参考序列包 .json（沿用 v0.5 schema）">导入 .json</button>
       <input type="file" id="refJsonFile" accept=".json,application/json" aria-label="选择参考序列 JSON 文件" style="display:none">
+      <button class="ghost mini" id="metroToggle" aria-label="开启或关闭节拍器" title="节拍器（D6）：Web Audio 本地响，不联网">节拍器 关</button>
+      <label class="mini-label" title="节拍器速度" style="display:inline-flex;align-items:center;gap:4px">BPM
+        <input type="range" id="metroBpm" min="40" max="220" step="1" value="90" aria-label="节拍器速度（每分钟拍数）" style="width:72px">
+        <span id="metroBpmVal" style="min-width:2em">90</span>
+      </label>
       <button class="ghost mini" id="btnRefGo">去诊断</button>
       <button class="ghost mini" id="btnRefClear">清空</button>
     </div>
@@ -569,15 +597,15 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
       <div class="row">
         <div class="field">
           <label>考级机构</label>
-          <select id="instSel"></select>
+          <select id="instSel" aria-label="乐器/音域"></select>
         </div>
         <div class="field">
           <label>级别</label>
-          <select id="lvlSel"></select>
+          <select id="lvlSel" aria-label="难度级别"></select>
         </div>
         <div class="field">
           <label>八度数量</label>
-          <select id="octs">
+          <select id="octs" aria-label="练习八度">
             <option value="1">1 个八度</option>
             <option value="2" selected>2 个八度</option>
             <option value="3">3 个八度</option>
@@ -598,15 +626,15 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
       <div class="row" style="margin-top:12px">
         <div class="field">
           <label>速度（BPM）</label>
-          <input type="number" id="tempo" min="30" max="200" step="1" value="60">
+          <input type="number" id="tempo" min="30" max="200" step="1" value="60" aria-label="练习速度(BPM)">
         </div>
         <div class="field">
           <label>萨克斯型号</label>
-          <select id="saxType"></select>
+          <select id="saxType" aria-label="萨克斯型号"></select>
         </div>
         <div class="field">
           <label>书写音起始八度</label>
-          <select id="startOct">
+          <select id="startOct" aria-label="起始八度">
             <option value="" selected>自动（适配引擎可分析音域）</option>
             <option value="2">C2 起</option>
             <option value="3">C3 起</option>
@@ -617,7 +645,7 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
         </div>
         <div class="field">
           <label>方向</label>
-          <select id="direction">
+          <select id="direction" aria-label="音阶方向">
             <option value="updown" selected>上下行</option>
             <option value="up">仅上行</option>
             <option value="down">仅下行</option>
@@ -643,7 +671,7 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
         </div>
         <div class="field">
           <label>谱面口径</label>
-          <select id="scorePitch">
+          <select id="scorePitch" aria-label="谱面移调">
             <option value="auto" selected>auto（谱面自带 &lt;transpose&gt; 优先，否则按型号转）</option>
             <option value="written">written（按书写音理解并转调）</option>
             <option value="sounding">sounding（谱面已是发声音）</option>
@@ -651,11 +679,11 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
         </div>
         <div class="field">
           <label>萨克斯型号</label>
-          <select id="saxTypePiece"></select>
+          <select id="saxTypePiece" aria-label="曲目萨克斯型号"></select>
         </div>
         <div class="field">
           <label>记谱类型</label>
-          <select id="scoreFormat">
+          <select id="scoreFormat" aria-label="乐谱格式">
             <option value="auto" selected>auto（按扩展名自动判断）</option>
             <option value="musicxml">MusicXML / XML</option>
             <option value="midi">MIDI（.mid / .midi）</option>
@@ -710,7 +738,7 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
         </div>
         <div class="field">
           <label>声源</label>
-          <select id="extractSource">
+          <select id="extractSource" aria-label="提取音源">
             <option value="vocal" selected>人声（清唱 65–1050 Hz）</option>
             <option value="sax">萨克斯（200–1000 Hz）</option>
             <option value="violin">小提琴（196–3136 Hz）</option>
@@ -722,8 +750,9 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
       <div class="row">
         <div class="field">
           <label>拍号</label>
-          <select id="extractTimeSig">
-            <option value="4/4" selected>4/4</option>
+          <select id="extractTimeSig" aria-label="拍号">
+            <option value="auto" selected>自动（D4 拍号推导）</option>
+            <option value="4/4">4/4</option>
             <option value="3/4">3/4</option>
             <option value="2/4">2/4</option>
             <option value="6/8">6/8</option>
@@ -739,7 +768,7 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
         </div>
         <div class="field">
           <label>量化网格</label>
-          <select id="extractGrid">
+          <select id="extractGrid" aria-label="量化粒度">
             <option value="4" selected>1/16（每拍 4 格）</option>
             <option value="2">1/8（每拍 2 格）</option>
             <option value="1">1/4（每拍 1 格）</option>
@@ -759,14 +788,14 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
       <div class="row" style="margin-top:10px">
         <div class="field" style="flex:0 1 auto">
           <label>处理方式</label>
-          <select id="extractSplitMode">
+          <select id="extractSplitMode" aria-label="分离模式">
             <option value="auto" selected>立体声自动分离（人声轨扒谱）</option>
             <option value="mono">直接提取单声部（不分离）</option>
           </select>
         </div>
         <div class="field" style="flex:0 1 auto">
           <label>分离强度 k（0.5–0.7）</label>
-          <input type="number" id="extractSplitK" min="0.5" max="0.7" step="0.05" value="0.6" style="width:80px" title="k 越大，人声轨对伴奏抑制越强（默认 0.6）">
+          <input type="number" id="extractSplitK" min="0.5" max="0.7" step="0.05" value="0.6" style="width:80px" title="k 越大，人声轨对伴奏抑制越强（默认 0.6）" aria-label="分离强度">
         </div>
         <div class="field" style="flex:1 1 220px">
           <label>分离结果</label>
@@ -818,19 +847,19 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
         </div>
         <div class="field">
           <label>类别</label>
-          <select id="libGenre"></select>
+          <select id="libGenre" aria-label="曲库类型"></select>
         </div>
         <div class="field">
           <label>参考序列</label>
-          <select id="libRoute"></select>
+          <select id="libRoute" aria-label="获取路径"></select>
         </div>
         <div class="field">
           <label>来源</label>
-          <select id="libBook"></select>
+          <select id="libBook" aria-label="曲库来源"></select>
         </div>
       </div>
       <div class="row lib-filter-row">
-        <label class="lib-filter"><input type="checkbox" id="libKOnly"> 仅看可一键练习</label>
+        <label class="lib-filter"><input type="checkbox" id="libKOnly" aria-label="仅显示可一键练"> 仅看可一键练习</label>
         <span class="kv" id="libFilterHint"></span>
       </div>
       <div class="note" id="libSummary"></div>
@@ -861,11 +890,11 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
       </div>
       <div class="field">
         <label>时长（分钟）</label>
-        <input type="number" id="ckMin" min="0" max="600" step="1" value="20">
+        <input type="number" id="ckMin" min="0" max="600" step="1" value="20" aria-label="练习时长(分钟)">
       </div>
       <div class="field">
         <label>自评</label>
-        <select id="ckGrade">
+        <select id="ckGrade" aria-label="打卡等级">
           <option value="A">A 顺畅</option>
           <option value="B" selected>B 一般</option>
           <option value="C">C 卡顿</option>
@@ -913,7 +942,7 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
     <div class="row">
       <div class="field">
         <label>乐器</label>
-        <select id="instrument">
+        <select id="instrument" aria-label="乐器">
           <option value="sax">萨克斯</option>
           <option value="violin">小提琴</option>
           <option value="flute">长笛 / 竹笛</option>
@@ -923,7 +952,7 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
       </div>
       <div class="field">
         <label>演奏水平</label>
-        <select id="level">
+        <select id="level" aria-label="级别">
           <option value="beginner">启蒙</option>
           <option value="mid" selected>中级</option>
           <option value="adv">高级</option>
@@ -931,7 +960,7 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
       </div>
       <div class="field">
         <label>基准音</label>
-        <select id="base">
+        <select id="base" aria-label="基准音高">
           <option value="440">A440</option>
           <option value="442" selected>A442（管乐惯例）</option>
           <option value="441">A441</option>
@@ -940,13 +969,13 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
     </div>
     <div class="intvl" style="margin-top:12px">
       <label style="margin:0;min-width:96px">基准微调</label>
-      <input type="range" id="calib" min="-20" max="20" step="1" value="0">
+      <input type="range" id="calib" min="-20" max="20" step="1" value="0" aria-label="基准校准(音分)">
       <span id="calibVal" class="acc" style="min-width:56px;text-align:right">0 音分</span>
     </div>
     <div class="row" style="margin-top:12px">
       <div class="field">
         <label>合成示范音偏差</label>
-        <input type="number" id="injectCents" min="-80" max="80" step="1" value="0">
+        <input type="number" id="injectCents" min="-80" max="80" step="1" value="0" aria-label="注入音分偏移">
       </div>
     </div>
     <div class="field dropzone" id="appAudioDrop" style="margin-top:14px">
@@ -1025,6 +1054,38 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
   <div class="card hidden" id="textCard">
     <h2>文本报告</h2>
     <pre id="textReport"></pre>
+  </div>
+
+  <!-- ============ D1. 个人音准倾向 ============ -->
+  <div class="card hidden" id="tendencyCard">
+    <h2>个人音准倾向（最近累计）</h2>
+    <div id="tendencyBody" class="note"></div>
+    <div class="note">数据仅存本机浏览器，用于下次练习对照；不涉及任何上传。</div>
+  </div>
+
+  <!-- ============ D2. 会话统计与分享 ============ -->
+  <div class="card hidden" id="sessionCard">
+    <h2>本次练习小结</h2>
+    <div id="sessionStatsBody" class="note"></div>
+    <div class="row">
+      <button class="ghost" id="btnShareSession">复制小结（可发微信）</button>
+    </div>
+    <pre class="hidden" id="sessionShareOut"></pre>
+  </div>
+
+  <!-- ============ D5. 明日练习包 ============ -->
+  <div class="card hidden" id="tomorrowCard">
+    <h2>明日练习包</h2>
+    <div id="tomorrowBody" class="note"></div>
+  </div>
+
+  <!-- ============ D9. 离线诊断报告导出 ============ -->
+  <div class="card hidden" id="exportCard">
+    <h2>离线诊断报告</h2>
+    <div class="note">把五线谱（如有）、逐音明细与趋势图合并成单页 HTML，可离线打开、打印或发给老师/家长。</div>
+    <div class="row">
+      <button class="ghost" id="btnSaveReport">保存诊断报告（.html）</button>
+    </div>
   </div>
 
   <div class="card">
@@ -1364,12 +1425,12 @@ function segmentNotes(frames, refA, tolCents){
    事实性元数据，**不含任何乐谱内容**。体积：紧凑索引 gzip 后约 4 KB。
    获取路径代号：s=可即时生成 d=公版渠道取谱 u=需自持授权 ?=待核
    ================================================================== */
-const PIECES_LIB = {"v":"v0.5","u":"2026-10-09","items":[{"i":"kid_001","t":"让我们荡起双桨","g":"children","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"kid_002","t":"七子之歌","g":"children","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"kid_003","t":"洋娃娃和小熊跳舞","g":"children","c":"tra","l":null,"b":"ZYSS","r":"d"},{"i":"kid_004","t":"小星星","g":"children","c":"tra","l":null,"b":"ZYSS","r":"d","k":"seed_小星星"},{"i":"kid_005","t":"拍手歌","g":"children","c":"tra","l":null,"b":"ZYSS","r":"d"},{"i":"kid_006","t":"卖报歌","g":"children","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"kid_007","t":"世上只有妈妈好","g":"children","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"kid_008","t":"鲁冰花","g":"children","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"kid_009","t":"蓝精灵之歌","g":"children","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"kid_010","t":"听妈妈讲那过去的事情","g":"children","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"kid_011","t":"生日快乐","g":"children","c":"pub","l":null,"b":"ZYSS","r":"d","k":"seed_生日快乐"},{"i":"kid_012","t":"两只老虎","g":"children","c":"pub","l":null,"b":"","r":"d","k":"seed_两只老虎"},{"i":"kid_013","t":"伦敦桥","g":"children","c":"pub","l":null,"b":"","r":"d","k":"seed_伦敦桥"},{"i":"kid_014","t":"划船歌","g":"children","c":"pub","l":null,"b":"","r":"d","k":"seed_划船歌"},{"i":"kid_015","t":"玛丽有只小羊羔","g":"children","c":"pub","l":null,"b":"","r":"d","k":"seed_玛丽有只小羊羔"},{"i":"cls_001","t":"索尔维格之歌","g":"classical","c":"pub","l":null,"b":"Q108","r":"d"},{"i":"cls_002","t":"乘着歌声的翅膀","g":"classical","c":"pub","l":null,"b":"Q108","r":"d"},{"i":"cls_003","t":"春之歌","g":"classical","c":"pub","l":null,"b":"Q108","r":"d"},{"i":"cls_004","t":"夜曲","g":"classical","c":"pub","l":7,"b":"Q108","r":"d"},{"i":"cls_005","t":"我的太阳","g":"classical","c":"pub","l":null,"b":"Q108","r":"d"},{"i":"cls_006","t":"饮酒歌","g":"classical","c":"pub","l":null,"b":"Q108","r":"d"},{"i":"cls_007","t":"费加罗的婚礼","g":"classical","c":"pub","l":null,"b":"Q108","r":"d"},{"i":"cls_008","t":"小奏鸣曲","g":"classical","c":"pub","l":4,"b":"Q108","r":"d"},{"i":"cls_009","t":"欢乐颂","g":"classical","c":"pub","l":null,"b":"ZYSS","r":"d","k":"seed_欢乐颂"},{"i":"cls_010","t":"献给爱丽丝","g":"classical","c":"pub","l":null,"b":"ZYSS","r":"d"},{"i":"cls_011","t":"天鹅","g":"classical","c":"pub","l":3,"b":"ZYSS","r":"d"},{"i":"cls_012","t":"杜鹃圆舞曲","g":"classical","c":"pub","l":null,"b":"ZYSS","r":"d"},{"i":"cls_013","t":"加沃特舞曲","g":"classical","c":"pub","l":null,"b":"ZYSS","r":"d"},{"i":"cls_014","t":"创意曲","g":"classical","c":"pub","l":4,"b":"ZYSS","r":"d"},{"i":"cls_015","t":"小夜曲","g":"classical","c":"pub","l":3,"b":"ZYSS","r":"d"},{"i":"cls_016","t":"匈牙利舞曲第五号","g":"classical","c":"pub","l":4,"b":"ZYSS","r":"d"},{"i":"cls_017","t":"匈牙利舞曲第六号","g":"classical","c":"pub","l":null,"b":"ZYSS","r":"d"},{"i":"cls_018","t":"高雅的妇人","g":"classical","c":"unk","l":null,"b":"ZYSS","r":"?"},{"i":"cls_019","t":"查尔达什舞曲","g":"classical","c":"pub","l":7,"b":"ZYSS","r":"d"},{"i":"cls_020","t":"C大调协奏曲乐章","g":"classical","c":"pub","l":null,"b":"ZYSS","r":"d"},{"i":"cls_021","t":"土耳其进行曲","g":"classical","c":"pub","l":null,"b":"ZYSS","r":"d"},{"i":"cls_022","t":"蓝色狂想曲","g":"classical","c":"pub","l":null,"b":"TT","r":"d"},{"i":"cls_023","t":"爱的礼赞","g":"classical","c":"pub","l":1,"b":"CPAC","r":"d"},{"i":"cls_024","t":"念故乡","g":"classical","c":"pub","l":1,"b":"WHB","r":"d"},{"i":"cls_025","t":"冬日的田野","g":"classical","c":"pub","l":1,"b":"CPAC","r":"d"},{"i":"cls_026","t":"船歌","g":"classical","c":"pub","l":2,"b":"WHB","r":"d"},{"i":"cls_027","t":"凯旋进行曲","g":"classical","c":"pub","l":2,"b":"WHB","r":"d"},{"i":"cls_028","t":"远航","g":"classical","c":"pub","l":2,"b":"CPAC","r":"d"},{"i":"cls_029","t":"小步舞曲","g":"classical","c":"pub","l":3,"b":"CPAC","r":"d"},{"i":"cls_030","t":"梦幻曲","g":"classical","c":"pub","l":3,"b":"WHB","r":"d"},{"i":"cls_031","t":"布列舞曲","g":"classical","c":"pub","l":2,"b":"CPAC","r":"d"},{"i":"cls_032","t":"自由射手","g":"classical","c":"pub","l":3,"b":"WHB","r":"d"},{"i":"cls_033","t":"哈巴涅拉舞曲","g":"classical","c":"pub","l":4,"b":"WHB","r":"d"},{"i":"cls_034","t":"浪漫曲","g":"classical","c":"pub","l":4,"b":"CPAC","r":"d"},{"i":"cls_035","t":"坎佐奈塔","g":"classical","c":"pub","l":5,"b":"WHB","r":"d"},{"i":"cls_036","t":"在东方","g":"classical","c":"pub","l":5,"b":"WHB","r":"d"},{"i":"cls_037","t":"协奏曲","g":"classical","c":"pub","l":5,"b":"WHB","r":"d"},{"i":"cls_038","t":"第三奏鸣曲","g":"classical","c":"pub","l":6,"b":"WHB","r":"d"},{"i":"cls_039","t":"叙事曲","g":"classical","c":"pub","l":6,"b":"WHB","r":"d"},{"i":"cls_040","t":"美丽的罗丝玛琳","g":"classical","c":"pub","l":6,"b":"WHB","r":"d"},{"i":"cls_041","t":"变奏曲","g":"classical","c":"pub","l":6,"b":"WHB","r":"d"},{"i":"cls_042","t":"巴丁小夜曲","g":"classical","c":"pub","l":4,"b":"CPAC","r":"d"},{"i":"cls_043","t":"月宫","g":"classical","c":"pub","l":6,"b":"WHB","r":"d"},{"i":"cls_044","t":"芭伯勒(波尔卡)","g":"classical","c":"pub","l":7,"b":"WHB","r":"d"},{"i":"cls_045","t":"第三协奏曲","g":"classical","c":"pub","l":7,"b":"WHB","r":"d"},{"i":"cls_046","t":"音乐会练习曲","g":"classical","c":"pub","l":7,"b":"WHB","r":"d"},{"i":"cls_047","t":"拉提那它","g":"classical","c":"pub","l":7,"b":"WHB","r":"d"},{"i":"cls_048","t":"波兰圆舞曲","g":"classical","c":"pub","l":1,"b":"CPAC","r":"d"},{"i":"cls_049","t":"舞会圆舞曲","g":"classical","c":"pub","l":1,"b":"CPAC","r":"d"},{"i":"cls_050","t":"多年以前","g":"classical","c":"pub","l":2,"b":"CPAC","r":"d"},{"i":"cls_051","t":"坎地列那","g":"classical","c":"pub","l":3,"b":"CPAC","r":"d"},{"i":"cls_052","t":"迷人曲","g":"classical","c":"pub","l":4,"b":"CPAC","r":"d"},{"i":"clscn_001","t":"梁祝","g":"classical_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"clscn_002","t":"渔舟唱晚","g":"classical_cn","c":"pub","l":5,"b":"WHB","r":"d"},{"i":"clscn_003","t":"瑶山情歌","g":"classical_cn","c":"pub","l":7,"b":"WHB","r":"d"},{"i":"folkcn_001","t":"珊瑚颂","g":"folk_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"folkcn_002","t":"映山红","g":"folk_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"folkcn_003","t":"花儿为什么这样红","g":"folk_cn","c":"tra","l":null,"b":"Q108","r":"d"},{"i":"folkcn_004","t":"我的祖国","g":"folk_cn","c":"pro","l":1,"b":"Q108","r":"u"},{"i":"folkcn_005","t":"半个月亮爬上来","g":"folk_cn","c":"tra","l":null,"b":"Q108","r":"d"},{"i":"folkcn_006","t":"南泥湾","g":"folk_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"folkcn_007","t":"采槟榔","g":"folk_cn","c":"tra","l":null,"b":"Q108","r":"d"},{"i":"folkcn_008","t":"九九艳阳天","g":"folk_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"folkcn_009","t":"绣荷包","g":"folk_cn","c":"tra","l":null,"b":"Q108","r":"d"},{"i":"folkcn_010","t":"秋收","g":"folk_cn","c":"tra","l":null,"b":"Q108","r":"d"},{"i":"folkcn_011","t":"小背篓","g":"folk_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"folkcn_012","t":"小放牛","g":"folk_cn","c":"tra","l":null,"b":"Q108","r":"d"},{"i":"folkcn_013","t":"紫竹调","g":"folk_cn","c":"tra","l":null,"b":"Q108","r":"d"},{"i":"folkcn_014","t":"牧童短笛","g":"folk_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"folkcn_015","t":"瑶族舞曲","g":"folk_cn","c":"pro","l":4,"b":"Q108","r":"u"},{"i":"folkcn_016","t":"天路","g":"folk_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"folkcn_017","t":"青藏高原","g":"folk_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"folkcn_018","t":"敖包相会","g":"folk_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"folkcn_019","t":"茉莉花","g":"folk_cn","c":"tra","l":null,"b":"NET163","r":"d"},{"i":"folkcn_020","t":"望春风","g":"folk_cn","c":"tra","l":null,"b":"ZYSS","r":"d"},{"i":"folkcn_021","t":"蒙古情歌","g":"folk_cn","c":"pub","l":2,"b":"CPAC","r":"d"},{"i":"folkcn_022","t":"小河淌水","g":"folk_cn","c":"pub","l":3,"b":"WHB","r":"d"},{"i":"folkcn_023","t":"山丹丹开花红艳艳","g":"folk_cn","c":"pub","l":4,"b":"WHB","r":"d"},{"i":"folkintl_001","t":"小白船","g":"folk_intl","c":"tra","l":null,"b":"Q108","r":"d"},{"i":"folkintl_002","t":"雪绒花","g":"folk_intl","c":"pro","l":1,"b":"Q108","r":"u"},{"i":"folkintl_003","t":"白兰鸽","g":"folk_intl","c":"unk","l":null,"b":"Q108","r":"?"},{"i":"folkintl_004","t":"噢苏珊娜","g":"folk_intl","c":"pub","l":null,"b":"Q108","r":"d"},{"i":"folkintl_005","t":"红河谷","g":"folk_intl","c":"tra","l":null,"b":"Q108","r":"d"},{"i":"folkintl_006","t":"北国之春","g":"folk_intl","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"folkintl_007","t":"海滨之歌","g":"folk_intl","c":"unk","l":null,"b":"Q108","r":"?"},{"i":"folkintl_008","t":"绿袖子","g":"folk_intl","c":"tra","l":2,"b":"NET163","r":"d"},{"i":"folkintl_009","t":"平安夜","g":"folk_intl","c":"pub","l":null,"b":"Q108","r":"d"},{"i":"folkintl_010","t":"重归苏莲托","g":"folk_intl","c":"pub","l":null,"b":"Q108","r":"d"},{"i":"folkintl_011","t":"友谊地久天长","g":"folk_intl","c":"tra","l":5,"b":"Q108","r":"d"},{"i":"folkintl_012","t":"铃儿响叮当","g":"folk_intl","c":"pub","l":null,"b":"Q108","r":"d","k":"seed_铃儿响叮当"},{"i":"folkintl_013","t":"山楂树","g":"folk_intl","c":"unk","l":null,"b":"Q108","r":"?"},{"i":"folkintl_014","t":"啊朋友再见","g":"folk_intl","c":"tra","l":null,"b":"Q108","r":"d"},{"i":"folkintl_015","t":"喀秋莎","g":"folk_intl","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"folkintl_016","t":"桑塔露琪亚","g":"folk_intl","c":"tra","l":null,"b":"Q108","r":"d"},{"i":"folkintl_017","t":"西波涅","g":"folk_intl","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"folkintl_018","t":"你是我的阳光","g":"folk_intl","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"folkintl_019","t":"伦敦德里小调","g":"folk_intl","c":"pub","l":2,"b":"CPAC","r":"d"},{"i":"folkintl_020","t":"送别","g":"folk_intl","c":"tra","l":2,"b":"CPAC","r":"d"},{"i":"jazz_001","t":"星尘","g":"jazz","c":"pub","l":null,"b":"Q108","r":"?"},{"i":"jazz_002","t":"午夜的萨克斯","g":"jazz","c":"pro","l":null,"b":"NET163","r":"u"},{"i":"jazz_003","t":"Take Five","g":"jazz","c":"pro","l":null,"b":"TT","r":"u"},{"i":"jazz_004","t":"Body and Soul","g":"jazz","c":"pro","l":null,"b":"TT","r":"u"},{"i":"jazz_005","t":"Just the Two of Us","g":"jazz","c":"pro","l":null,"b":"TT","r":"u"},{"i":"jazz_006","t":"大篷车","g":"jazz","c":"pro","l":null,"b":"TT","r":"u"},{"i":"jazz_007","t":"夏日时光","g":"jazz","c":"pro","l":null,"b":"TT","r":"u"},{"i":"jazz_008","t":"夜来香","g":"jazz","c":"pro","l":null,"b":"TT","r":"u"},{"i":"light_001","t":"天空之城","g":"light","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"light_002","t":"月亮河","g":"light","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"light_003","t":"航行","g":"light","c":"unk","l":null,"b":"Q108","r":"?"},{"i":"light_004","t":"蓝色的爱","g":"light","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"light_005","t":"伤感","g":"light","c":"unk","l":null,"b":"Q108","r":"?"},{"i":"light_006","t":"今夜寂寞吗","g":"light","c":"unk","l":null,"b":"Q108","r":"?"},{"i":"light_007","t":"永浴爱河","g":"light","c":"pro","l":null,"b":"NET163","r":"u"},{"i":"light_008","t":"人鬼情未了","g":"light","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"light_009","t":"阿根廷别为我哭泣","g":"light","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"light_010","t":"爱情的故事","g":"light","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"light_011","t":"情侣","g":"light","c":"unk","l":null,"b":"Q108","r":"?"},{"i":"light_012","t":"很难说我对不起","g":"light","c":"unk","l":null,"b":"Q108","r":"?"},{"i":"light_013","t":"薄雾","g":"light","c":"unk","l":null,"b":"Q108","r":"?"},{"i":"light_014","t":"最后一个华尔兹","g":"light","c":"unk","l":null,"b":"Q108","r":"?"},{"i":"light_015","t":"罗密欧与朱丽叶","g":"light","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"light_016","t":"记忆","g":"light","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"light_017","t":"摇滚乐","g":"light","c":"unk","l":null,"b":"Q108","r":"?"},{"i":"light_018","t":"献给所有我爱过的女孩","g":"light","c":"unk","l":null,"b":"Q108","r":"?"},{"i":"light_019","t":"我心永恒","g":"light","c":"pro","l":null,"b":"NET163","r":"u"},{"i":"light_020","t":"回家","g":"light","c":"pro","l":null,"b":"NET163","r":"u"},{"i":"light_021","t":"西班牙斗牛士","g":"light","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"light_022","t":"海之梦","g":"light","c":"unk","l":null,"b":"ZYSS","r":"?"},{"i":"light_023","t":"温柔的倾诉","g":"light","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"light_024","t":"清晨","g":"light","c":"pro","l":null,"b":"NET163","r":"u"},{"i":"light_025","t":"天堂之约","g":"light","c":"unk","l":null,"b":"ZYSS","r":"?"},{"i":"light_026","t":"此情不移","g":"light","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"light_027","t":"魂断蓝桥","g":"light","c":"pro","l":null,"b":"TT","r":"u"},{"i":"light_028","t":"珍爱时光","g":"light","c":"unk","l":null,"b":"ZYSS","r":"?"},{"i":"light_029","t":"生活的乐趣","g":"light","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"light_030","t":"雨的旋律","g":"light","c":"unk","l":null,"b":"ZYSS","r":"?"},{"i":"light_031","t":"失落的爱","g":"light","c":"unk","l":null,"b":"ZYSS","r":"?"},{"i":"light_032","t":"全心全意","g":"light","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"light_033","t":"夜莺","g":"light","c":"pro","l":null,"b":"NET163","r":"u"},{"i":"popcn_001","t":"我和你","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_002","t":"隐形的翅膀","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_003","t":"荷塘月色","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_004","t":"在心里从此永远有个你","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_005","t":"大海","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_006","t":"星月神话","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_007","t":"青花瓷","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_008","t":"犯错","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_009","t":"爱情买卖","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_010","t":"日不落","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_011","t":"春天里","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_012","t":"听海","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_013","t":"七里香","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_014","t":"我们的爱","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_015","t":"有多少爱可以重来","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_016","t":"暗香","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_017","t":"千里之外","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_018","t":"传奇","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_019","t":"忐忑","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_020","t":"甜蜜蜜","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_021","t":"我只在乎你","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_022","t":"同一首歌","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_023","t":"大海啊故乡","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_024","t":"难忘今宵","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_025","t":"小城故事","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_026","t":"绿岛小夜曲","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_027","t":"爱的奉献","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_028","t":"乡间的小路","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_029","t":"月亮代表我的心","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_030","t":"真的好想你","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_031","t":"祝你平安","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_032","t":"千言万语","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_033","t":"何日君再来","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_034","t":"但愿人长久","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_035","t":"小村之恋","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_036","t":"一剪梅","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_037","t":"明天会更好","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_038","t":"难得有情人","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_039","t":"情人的眼泪","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_040","t":"你的眼神","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_041","t":"爱你在心口难开","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_042","t":"万水千山总是情","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_043","t":"在水一方","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_044","t":"执着","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_045","t":"故乡的云","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_046","t":"大约在冬季","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_047","t":"花心","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_048","t":"橄榄树","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_049","t":"天黑黑","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_050","t":"不想长大","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_051","t":"好人一生平安","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_052","t":"我不想说","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_053","t":"爱的代价","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_054","t":"上海滩","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_055","t":"失恋阵线联盟","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_056","t":"原来你也在这里","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_057","t":"菊花台","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_058","t":"美丽的神话","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_059","t":"我的中国心","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_060","t":"弯弯的月亮","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_061","t":"明天你是否依然爱我","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_062","t":"女人花","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_063","t":"天上人间","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_064","t":"约定","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_065","t":"征服","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_066","t":"新不了情","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_067","t":"夕阳醉了","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_068","t":"外婆的澎湖湾","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_069","t":"城里的月光","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_070","t":"被遗忘的时光","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_071","t":"海上花","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_072","t":"往事随风","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_073","t":"童年","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_074","t":"五环之恋","g":"pop_cn","c":"pro","l":3,"b":"CPAC","r":"u"},{"i":"popintl_001","t":"襟裳岬","g":"pop_intl","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popintl_002","t":"草帽歌","g":"pop_intl","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popintl_003","t":"昨日重现","g":"pop_intl","c":"pro","l":null,"b":"NET163","r":"u"},{"i":"popintl_004","t":"此情可待","g":"pop_intl","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popintl_005","t":"卡萨布兰卡","g":"pop_intl","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popintl_006","t":"昨日","g":"pop_intl","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popintl_007","t":"无心低语","g":"pop_intl","c":"pro","l":null,"b":"NET163","r":"u"}],"enrich":{"seed":8,"routes":{"seed":8,"pd_download":77,"user_supplied":131,"verify_first":19,"total":235},"ref_available":{"seed":8,"pd_pack":4,"total":12}},"seeds":["seed_两只老虎","seed_伦敦桥","seed_划船歌","seed_小星星","seed_欢乐颂","seed_玛丽有只小羊羔","seed_生日快乐","seed_铃儿响叮当"]};
+const PIECES_LIB = {"v":"v0.5","u":"2026-10-09","items":[{"i":"kid_001","t":"让我们荡起双桨","g":"children","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"kid_002","t":"七子之歌","g":"children","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"kid_003","t":"洋娃娃和小熊跳舞","g":"children","c":"tra","l":null,"b":"ZYSS","r":"d"},{"i":"kid_004","t":"小星星","g":"children","c":"tra","l":null,"b":"ZYSS","r":"d","k":"seed_小星星"},{"i":"kid_005","t":"拍手歌","g":"children","c":"tra","l":null,"b":"ZYSS","r":"d"},{"i":"kid_006","t":"卖报歌","g":"children","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"kid_007","t":"世上只有妈妈好","g":"children","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"kid_008","t":"鲁冰花","g":"children","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"kid_009","t":"蓝精灵之歌","g":"children","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"kid_010","t":"听妈妈讲那过去的事情","g":"children","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"kid_011","t":"生日快乐","g":"children","c":"pub","l":null,"b":"ZYSS","r":"d","k":"seed_生日快乐"},{"i":"kid_012","t":"两只老虎","g":"children","c":"pub","l":null,"b":"","r":"d","k":"seed_两只老虎"},{"i":"kid_013","t":"伦敦桥","g":"children","c":"pub","l":null,"b":"","r":"d","k":"seed_伦敦桥"},{"i":"kid_014","t":"划船歌","g":"children","c":"pub","l":null,"b":"","r":"d","k":"seed_划船歌"},{"i":"kid_015","t":"玛丽有只小羊羔","g":"children","c":"pub","l":null,"b":"","r":"d","k":"seed_玛丽有只小羊羔"},{"i":"cls_001","t":"索尔维格之歌","g":"classical","c":"pub","l":null,"b":"Q108","r":"d"},{"i":"cls_002","t":"乘着歌声的翅膀","g":"classical","c":"pub","l":null,"b":"Q108","r":"d"},{"i":"cls_003","t":"春之歌","g":"classical","c":"pub","l":null,"b":"Q108","r":"d"},{"i":"cls_004","t":"夜曲","g":"classical","c":"pub","l":7,"b":"Q108","r":"d"},{"i":"cls_005","t":"我的太阳","g":"classical","c":"pub","l":null,"b":"Q108","r":"d"},{"i":"cls_006","t":"饮酒歌","g":"classical","c":"pub","l":null,"b":"Q108","r":"d"},{"i":"cls_007","t":"费加罗的婚礼","g":"classical","c":"pub","l":null,"b":"Q108","r":"d"},{"i":"cls_008","t":"小奏鸣曲","g":"classical","c":"pub","l":4,"b":"Q108","r":"d"},{"i":"cls_009","t":"欢乐颂","g":"classical","c":"pub","l":null,"b":"ZYSS","r":"d","k":"seed_欢乐颂"},{"i":"cls_010","t":"献给爱丽丝","g":"classical","c":"pub","l":null,"b":"ZYSS","r":"d"},{"i":"cls_011","t":"天鹅","g":"classical","c":"pub","l":3,"b":"ZYSS","r":"d"},{"i":"cls_012","t":"杜鹃圆舞曲","g":"classical","c":"pub","l":null,"b":"ZYSS","r":"d"},{"i":"cls_013","t":"加沃特舞曲","g":"classical","c":"pub","l":null,"b":"ZYSS","r":"d"},{"i":"cls_014","t":"创意曲","g":"classical","c":"pub","l":4,"b":"ZYSS","r":"d"},{"i":"cls_015","t":"小夜曲","g":"classical","c":"pub","l":3,"b":"ZYSS","r":"d"},{"i":"cls_016","t":"匈牙利舞曲第五号","g":"classical","c":"pub","l":4,"b":"ZYSS","r":"d"},{"i":"cls_017","t":"匈牙利舞曲第六号","g":"classical","c":"pub","l":null,"b":"ZYSS","r":"d"},{"i":"cls_018","t":"高雅的妇人","g":"classical","c":"unk","l":null,"b":"ZYSS","r":"?"},{"i":"cls_019","t":"查尔达什舞曲","g":"classical","c":"pub","l":7,"b":"ZYSS","r":"d"},{"i":"cls_020","t":"C大调协奏曲乐章","g":"classical","c":"pub","l":null,"b":"ZYSS","r":"d"},{"i":"cls_021","t":"土耳其进行曲","g":"classical","c":"pub","l":null,"b":"ZYSS","r":"d"},{"i":"cls_022","t":"蓝色狂想曲","g":"classical","c":"pub","l":null,"b":"TT","r":"d"},{"i":"cls_023","t":"爱的礼赞","g":"classical","c":"pub","l":1,"b":"CPAC","r":"d"},{"i":"cls_024","t":"念故乡","g":"classical","c":"pub","l":1,"b":"WHB","r":"d"},{"i":"cls_025","t":"冬日的田野","g":"classical","c":"pub","l":1,"b":"CPAC","r":"d"},{"i":"cls_026","t":"船歌","g":"classical","c":"pub","l":2,"b":"WHB","r":"d"},{"i":"cls_027","t":"凯旋进行曲","g":"classical","c":"pub","l":2,"b":"WHB","r":"d"},{"i":"cls_028","t":"远航","g":"classical","c":"pub","l":2,"b":"CPAC","r":"d"},{"i":"cls_029","t":"小步舞曲","g":"classical","c":"pub","l":3,"b":"CPAC","r":"d"},{"i":"cls_030","t":"梦幻曲","g":"classical","c":"pub","l":3,"b":"WHB","r":"d"},{"i":"cls_031","t":"布列舞曲","g":"classical","c":"pub","l":2,"b":"CPAC","r":"d"},{"i":"cls_032","t":"自由射手","g":"classical","c":"pub","l":3,"b":"WHB","r":"d"},{"i":"cls_033","t":"哈巴涅拉舞曲","g":"classical","c":"pub","l":4,"b":"WHB","r":"d"},{"i":"cls_034","t":"浪漫曲","g":"classical","c":"pub","l":4,"b":"CPAC","r":"d"},{"i":"cls_035","t":"坎佐奈塔","g":"classical","c":"pub","l":5,"b":"WHB","r":"d"},{"i":"cls_036","t":"在东方","g":"classical","c":"pub","l":5,"b":"WHB","r":"d"},{"i":"cls_037","t":"协奏曲","g":"classical","c":"pub","l":5,"b":"WHB","r":"d"},{"i":"cls_038","t":"第三奏鸣曲","g":"classical","c":"pub","l":6,"b":"WHB","r":"d"},{"i":"cls_039","t":"叙事曲","g":"classical","c":"pub","l":6,"b":"WHB","r":"d"},{"i":"cls_040","t":"美丽的罗丝玛琳","g":"classical","c":"pub","l":6,"b":"WHB","r":"d"},{"i":"cls_041","t":"变奏曲","g":"classical","c":"pub","l":6,"b":"WHB","r":"d"},{"i":"cls_042","t":"巴丁小夜曲","g":"classical","c":"pub","l":4,"b":"CPAC","r":"d"},{"i":"cls_043","t":"月宫","g":"classical","c":"pub","l":6,"b":"WHB","r":"d"},{"i":"cls_044","t":"芭伯勒(波尔卡)","g":"classical","c":"pub","l":7,"b":"WHB","r":"d"},{"i":"cls_045","t":"第三协奏曲","g":"classical","c":"pub","l":7,"b":"WHB","r":"d"},{"i":"cls_046","t":"音乐会练习曲","g":"classical","c":"pub","l":7,"b":"WHB","r":"d"},{"i":"cls_047","t":"拉提那它","g":"classical","c":"pub","l":7,"b":"WHB","r":"d"},{"i":"cls_048","t":"波兰圆舞曲","g":"classical","c":"pub","l":1,"b":"CPAC","r":"d"},{"i":"cls_049","t":"舞会圆舞曲","g":"classical","c":"pub","l":1,"b":"CPAC","r":"d"},{"i":"cls_050","t":"多年以前","g":"classical","c":"pub","l":2,"b":"CPAC","r":"d"},{"i":"cls_051","t":"坎地列那","g":"classical","c":"pub","l":3,"b":"CPAC","r":"d"},{"i":"cls_052","t":"迷人曲","g":"classical","c":"pub","l":4,"b":"CPAC","r":"d"},{"i":"clscn_001","t":"梁祝","g":"classical_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"clscn_002","t":"渔舟唱晚","g":"classical_cn","c":"pub","l":5,"b":"WHB","r":"d"},{"i":"clscn_003","t":"瑶山情歌","g":"classical_cn","c":"pub","l":7,"b":"WHB","r":"d"},{"i":"folkcn_001","t":"珊瑚颂","g":"folk_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"folkcn_002","t":"映山红","g":"folk_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"folkcn_003","t":"花儿为什么这样红","g":"folk_cn","c":"tra","l":null,"b":"Q108","r":"d"},{"i":"folkcn_004","t":"我的祖国","g":"folk_cn","c":"pro","l":1,"b":"Q108","r":"u"},{"i":"folkcn_005","t":"半个月亮爬上来","g":"folk_cn","c":"tra","l":null,"b":"Q108","r":"d"},{"i":"folkcn_006","t":"南泥湾","g":"folk_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"folkcn_007","t":"采槟榔","g":"folk_cn","c":"tra","l":null,"b":"Q108","r":"d"},{"i":"folkcn_008","t":"九九艳阳天","g":"folk_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"folkcn_009","t":"绣荷包","g":"folk_cn","c":"tra","l":null,"b":"Q108","r":"d"},{"i":"folkcn_010","t":"秋收","g":"folk_cn","c":"tra","l":null,"b":"Q108","r":"d"},{"i":"folkcn_011","t":"小背篓","g":"folk_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"folkcn_012","t":"小放牛","g":"folk_cn","c":"tra","l":null,"b":"Q108","r":"d"},{"i":"folkcn_013","t":"紫竹调","g":"folk_cn","c":"tra","l":null,"b":"Q108","r":"d"},{"i":"folkcn_014","t":"牧童短笛","g":"folk_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"folkcn_015","t":"瑶族舞曲","g":"folk_cn","c":"pro","l":4,"b":"Q108","r":"u"},{"i":"folkcn_016","t":"天路","g":"folk_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"folkcn_017","t":"青藏高原","g":"folk_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"folkcn_018","t":"敖包相会","g":"folk_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"folkcn_019","t":"茉莉花","g":"folk_cn","c":"tra","l":null,"b":"NET163","r":"d"},{"i":"folkcn_020","t":"望春风","g":"folk_cn","c":"tra","l":null,"b":"ZYSS","r":"d"},{"i":"folkcn_021","t":"蒙古情歌","g":"folk_cn","c":"pub","l":2,"b":"CPAC","r":"d"},{"i":"folkcn_022","t":"小河淌水","g":"folk_cn","c":"pub","l":3,"b":"WHB","r":"d"},{"i":"folkcn_023","t":"山丹丹开花红艳艳","g":"folk_cn","c":"pub","l":4,"b":"WHB","r":"d"},{"i":"folkintl_001","t":"小白船","g":"folk_intl","c":"tra","l":null,"b":"Q108","r":"d"},{"i":"folkintl_002","t":"雪绒花","g":"folk_intl","c":"pro","l":1,"b":"Q108","r":"u"},{"i":"folkintl_003","t":"白兰鸽","g":"folk_intl","c":"unk","l":null,"b":"Q108","r":"?"},{"i":"folkintl_004","t":"噢苏珊娜","g":"folk_intl","c":"pub","l":null,"b":"Q108","r":"d"},{"i":"folkintl_005","t":"红河谷","g":"folk_intl","c":"tra","l":null,"b":"Q108","r":"d"},{"i":"folkintl_006","t":"北国之春","g":"folk_intl","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"folkintl_007","t":"海滨之歌","g":"folk_intl","c":"unk","l":null,"b":"Q108","r":"?"},{"i":"folkintl_008","t":"绿袖子","g":"folk_intl","c":"tra","l":2,"b":"NET163","r":"d"},{"i":"folkintl_009","t":"平安夜","g":"folk_intl","c":"pub","l":null,"b":"Q108","r":"d"},{"i":"folkintl_010","t":"重归苏莲托","g":"folk_intl","c":"pub","l":null,"b":"Q108","r":"d"},{"i":"folkintl_011","t":"友谊地久天长","g":"folk_intl","c":"tra","l":5,"b":"Q108","r":"d"},{"i":"folkintl_012","t":"铃儿响叮当","g":"folk_intl","c":"pub","l":null,"b":"Q108","r":"d","k":"seed_铃儿响叮当"},{"i":"folkintl_013","t":"山楂树","g":"folk_intl","c":"unk","l":null,"b":"Q108","r":"?"},{"i":"folkintl_014","t":"啊朋友再见","g":"folk_intl","c":"tra","l":null,"b":"Q108","r":"d"},{"i":"folkintl_015","t":"喀秋莎","g":"folk_intl","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"folkintl_016","t":"桑塔露琪亚","g":"folk_intl","c":"tra","l":null,"b":"Q108","r":"d"},{"i":"folkintl_017","t":"西波涅","g":"folk_intl","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"folkintl_018","t":"你是我的阳光","g":"folk_intl","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"folkintl_019","t":"伦敦德里小调","g":"folk_intl","c":"pub","l":2,"b":"CPAC","r":"d"},{"i":"folkintl_020","t":"送别","g":"folk_intl","c":"tra","l":2,"b":"CPAC","r":"d"},{"i":"jazz_001","t":"星尘","g":"jazz","c":"pub","l":null,"b":"Q108","r":"?"},{"i":"jazz_002","t":"午夜的萨克斯","g":"jazz","c":"pro","l":null,"b":"NET163","r":"u"},{"i":"jazz_003","t":"Take Five","g":"jazz","c":"pro","l":null,"b":"TT","r":"u"},{"i":"jazz_004","t":"Body and Soul","g":"jazz","c":"pro","l":null,"b":"TT","r":"u"},{"i":"jazz_005","t":"Just the Two of Us","g":"jazz","c":"pro","l":null,"b":"TT","r":"u"},{"i":"jazz_006","t":"大篷车","g":"jazz","c":"pro","l":null,"b":"TT","r":"u"},{"i":"jazz_007","t":"夏日时光","g":"jazz","c":"pro","l":null,"b":"TT","r":"u"},{"i":"jazz_008","t":"夜来香","g":"jazz","c":"pro","l":null,"b":"TT","r":"u"},{"i":"light_001","t":"天空之城","g":"light","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"light_002","t":"月亮河","g":"light","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"light_003","t":"航行","g":"light","c":"unk","l":null,"b":"Q108","r":"?"},{"i":"light_004","t":"蓝色的爱","g":"light","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"light_005","t":"伤感","g":"light","c":"unk","l":null,"b":"Q108","r":"?"},{"i":"light_006","t":"今夜寂寞吗","g":"light","c":"unk","l":null,"b":"Q108","r":"?"},{"i":"light_007","t":"永浴爱河","g":"light","c":"pro","l":null,"b":"NET163","r":"u"},{"i":"light_008","t":"人鬼情未了","g":"light","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"light_009","t":"阿根廷别为我哭泣","g":"light","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"light_010","t":"爱情的故事","g":"light","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"light_011","t":"情侣","g":"light","c":"unk","l":null,"b":"Q108","r":"?"},{"i":"light_012","t":"很难说我对不起","g":"light","c":"unk","l":null,"b":"Q108","r":"?"},{"i":"light_013","t":"薄雾","g":"light","c":"unk","l":null,"b":"Q108","r":"?"},{"i":"light_014","t":"最后一个华尔兹","g":"light","c":"unk","l":null,"b":"Q108","r":"?"},{"i":"light_015","t":"罗密欧与朱丽叶","g":"light","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"light_016","t":"记忆","g":"light","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"light_017","t":"摇滚乐","g":"light","c":"unk","l":null,"b":"Q108","r":"?"},{"i":"light_018","t":"献给所有我爱过的女孩","g":"light","c":"unk","l":null,"b":"Q108","r":"?"},{"i":"light_019","t":"我心永恒","g":"light","c":"pro","l":null,"b":"NET163","r":"u"},{"i":"light_020","t":"回家","g":"light","c":"pro","l":null,"b":"NET163","r":"u"},{"i":"light_021","t":"西班牙斗牛士","g":"light","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"light_022","t":"海之梦","g":"light","c":"unk","l":null,"b":"ZYSS","r":"?"},{"i":"light_023","t":"温柔的倾诉","g":"light","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"light_024","t":"清晨","g":"light","c":"pro","l":null,"b":"NET163","r":"u"},{"i":"light_025","t":"天堂之约","g":"light","c":"unk","l":null,"b":"ZYSS","r":"?"},{"i":"light_026","t":"此情不移","g":"light","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"light_027","t":"魂断蓝桥","g":"light","c":"pro","l":null,"b":"TT","r":"u"},{"i":"light_028","t":"珍爱时光","g":"light","c":"unk","l":null,"b":"ZYSS","r":"?"},{"i":"light_029","t":"生活的乐趣","g":"light","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"light_030","t":"雨的旋律","g":"light","c":"unk","l":null,"b":"ZYSS","r":"?"},{"i":"light_031","t":"失落的爱","g":"light","c":"unk","l":null,"b":"ZYSS","r":"?"},{"i":"light_032","t":"全心全意","g":"light","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"light_033","t":"夜莺","g":"light","c":"pro","l":null,"b":"NET163","r":"u"},{"i":"popcn_001","t":"我和你","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_002","t":"隐形的翅膀","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_003","t":"荷塘月色","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_004","t":"在心里从此永远有个你","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_005","t":"大海","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_006","t":"星月神话","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_007","t":"青花瓷","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_008","t":"犯错","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_009","t":"爱情买卖","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_010","t":"日不落","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_011","t":"春天里","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_012","t":"听海","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_013","t":"七里香","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_014","t":"我们的爱","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_015","t":"有多少爱可以重来","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_016","t":"暗香","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_017","t":"千里之外","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_018","t":"传奇","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_019","t":"忐忑","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_020","t":"甜蜜蜜","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_021","t":"我只在乎你","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_022","t":"同一首歌","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_023","t":"大海啊故乡","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_024","t":"难忘今宵","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_025","t":"小城故事","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_026","t":"绿岛小夜曲","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_027","t":"爱的奉献","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_028","t":"乡间的小路","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_029","t":"月亮代表我的心","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_030","t":"真的好想你","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_031","t":"祝你平安","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_032","t":"千言万语","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_033","t":"何日君再来","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_034","t":"但愿人长久","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_035","t":"小村之恋","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_036","t":"一剪梅","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_037","t":"明天会更好","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_038","t":"难得有情人","g":"pop_cn","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popcn_039","t":"情人的眼泪","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_040","t":"你的眼神","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_041","t":"爱你在心口难开","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_042","t":"万水千山总是情","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_043","t":"在水一方","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_044","t":"执着","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_045","t":"故乡的云","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_046","t":"大约在冬季","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_047","t":"花心","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_048","t":"橄榄树","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_049","t":"天黑黑","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_050","t":"不想长大","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_051","t":"好人一生平安","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_052","t":"我不想说","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_053","t":"爱的代价","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_054","t":"上海滩","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_055","t":"失恋阵线联盟","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_056","t":"原来你也在这里","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_057","t":"菊花台","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_058","t":"美丽的神话","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_059","t":"我的中国心","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_060","t":"弯弯的月亮","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_061","t":"明天你是否依然爱我","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_062","t":"女人花","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_063","t":"天上人间","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_064","t":"约定","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_065","t":"征服","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_066","t":"新不了情","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_067","t":"夕阳醉了","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_068","t":"外婆的澎湖湾","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_069","t":"城里的月光","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_070","t":"被遗忘的时光","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_071","t":"海上花","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_072","t":"往事随风","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_073","t":"童年","g":"pop_cn","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popcn_074","t":"五环之恋","g":"pop_cn","c":"pro","l":3,"b":"CPAC","r":"u"},{"i":"popintl_001","t":"襟裳岬","g":"pop_intl","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popintl_002","t":"草帽歌","g":"pop_intl","c":"pro","l":null,"b":"Q108","r":"u"},{"i":"popintl_003","t":"昨日重现","g":"pop_intl","c":"pro","l":null,"b":"NET163","r":"u"},{"i":"popintl_004","t":"此情可待","g":"pop_intl","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popintl_005","t":"卡萨布兰卡","g":"pop_intl","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popintl_006","t":"昨日","g":"pop_intl","c":"pro","l":null,"b":"ZYSS","r":"u"},{"i":"popintl_007","t":"无心低语","g":"pop_intl","c":"pro","l":null,"b":"NET163","r":"u"},{"i":"ex_001","t":"C 大调音阶练习","g":"exercise","c":"pub","l":null,"b":"RULE","r":"d","k":"seed_音阶练习_C大调"},{"i":"ex_002","t":"C 大三和弦琶音练习","g":"exercise","c":"pub","l":null,"b":"RULE","r":"d","k":"seed_琶音练习_C大三和弦"},{"i":"ex_003","t":"五声音阶模进练习","g":"exercise","c":"pub","l":null,"b":"RULE","r":"d","k":"seed_五声音阶模进_C大调"},{"i":"ex_004","t":"三连音音阶片段练习","g":"exercise","c":"pub","l":null,"b":"RULE","r":"d","k":"seed_三连音音阶片段_C大调"},{"i":"ex_005","t":"级进模进练习","g":"exercise","c":"pub","l":null,"b":"RULE","r":"d","k":"seed_级进模进练习_C大调"}],"enrich":{"seed":13,"routes":{"seed":13,"pd_download":77,"user_supplied":131,"verify_first":19,"total":240},"ref_available":{"seed":13,"pd_pack":4,"total":17}},"seeds":["seed_两只老虎","seed_伦敦桥","seed_划船歌","seed_小星星","seed_欢乐颂","seed_玛丽有只小羊羔","seed_生日快乐","seed_铃儿响叮当","seed_音阶练习_C大调","seed_琶音练习_C大三和弦","seed_五声音阶模进_C大调","seed_三连音音阶片段_C大调","seed_级进模进练习_C大调"]};
 
 /* 曲目库字典（把索引里的短代号翻成人话；不改变任何判定） */
 const LIB_GENRE_CN = {"pop_cn":"华语流行","pop_intl":"外文流行","folk_cn":"中国民歌","folk_intl":"外国民歌",
   "light":"轻音乐/影视名曲","jazz":"爵士/布鲁斯","classical":"古典","classical_cn":"中国民族器乐",
-  "children":"儿歌","duet":"二重奏"};
+  "children":"儿歌","duet":"二重奏","exercise":"练习曲"};
 const LIB_COPY_CN = {"pub":"公有领域","tra":"传统民歌","pro":"保护期内","unk":"未核权"};
 const LIB_ROUTE_CN = {"k":"可即时生成","d":"公版渠道取谱","u":"需自持授权","?":"待核"};
 const LIB_ROUTE_FULL = {
@@ -1389,7 +1450,12 @@ const LIB_BOOK_CN = {"Q108":"《萨克斯曲集108首(修订版)》","Q108B":"�
    转成发声音；若整条落到引擎可分析音域（sax 200–1000 Hz）之外，做 12 的整数倍
    平移并如实记录 shift。网页端只查表，不做任何音高推断。
    ================================================================== */
-const PIECE_REFS = {"seed_小星星":{"title":"小星星","genre":"children","tempo_bpm":96.0,"note_value":"quarter","beats_per_measure":4,"copyright":"public_domain","copyright_basis":"曲调为传统法国民谣 Ah! vous dirai-je, Maman（18 世纪），多地区已过保护期","rhythm_caveat":"种子旋律为等时值骨架：音高序列与音数正确，节奏时值非原曲。音准/错音/漏音/完整性四个维度可用；节奏维度请导入完整乐谱。","written":[60,60,67,67,69,69,67,65,65,64,64,62,62,60,67,67,65,65,64,64,62,60,60,67,67,69,69,67,65,65,64,64,62,62,60],"keys":{"written":{"transpose":0,"shift":0,"midi":[60,60,67,67,69,69,67,65,65,64,64,62,62,60,67,67,65,65,64,64,62,60,60,67,67,69,69,67,65,65,64,64,62,62,60]},"soprano":{"transpose":-2,"shift":0,"midi":[58,58,65,65,67,67,65,63,63,62,62,60,60,58,65,65,63,63,62,62,60,58,58,65,65,67,67,65,63,63,62,62,60,60,58]},"alto":{"transpose":-9,"shift":12,"midi":[63,63,70,70,72,72,70,68,68,67,67,65,65,63,70,70,68,68,67,67,65,63,63,70,70,72,72,70,68,68,67,67,65,65,63]},"tenor":{"transpose":-14,"shift":12,"midi":[58,58,65,65,67,67,65,63,63,62,62,60,60,58,65,65,63,63,62,62,60,58,58,65,65,67,67,65,63,63,62,62,60,60,58]},"baritone":{"transpose":-21,"shift":24,"midi":[63,63,70,70,72,72,70,68,68,67,67,65,65,63,70,70,68,68,67,67,65,63,63,70,70,72,72,70,68,68,67,67,65,65,63]}}},"seed_欢乐颂":{"title":"欢乐颂（主题）","genre":"classical","tempo_bpm":88.0,"note_value":"quarter","beats_per_measure":4,"copyright":"public_domain","copyright_basis":"贝多芬《第九交响曲》第四乐章主题，作者卒于 1827 年；C 大调移调书写","rhythm_caveat":"种子旋律为等时值骨架：音高序列与音数正确，节奏时值非原曲。音准/错音/漏音/完整性四个维度可用；节奏维度请导入完整乐谱。","written":[64,64,65,67,67,65,64,62,60,60,62,64,64,62,62,60],"keys":{"written":{"transpose":0,"shift":0,"midi":[64,64,65,67,67,65,64,62,60,60,62,64,64,62,62,60]},"soprano":{"transpose":-2,"shift":0,"midi":[62,62,63,65,65,63,62,60,58,58,60,62,62,60,60,58]},"alto":{"transpose":-9,"shift":12,"midi":[67,67,68,70,70,68,67,65,63,63,65,67,67,65,65,63]},"tenor":{"transpose":-14,"shift":12,"midi":[62,62,63,65,65,63,62,60,58,58,60,62,62,60,60,58]},"baritone":{"transpose":-21,"shift":24,"midi":[67,67,68,70,70,68,67,65,63,63,65,67,67,65,65,63]}}},"seed_生日快乐":{"title":"生日快乐歌","genre":"children","tempo_bpm":108.0,"note_value":"quarter","beats_per_measure":3,"copyright":"public_domain","copyright_basis":"旋律版权 2016 年经美国法院（Warner/Chappell 案）判定进入公有领域","rhythm_caveat":"种子旋律为等时值骨架：音高序列与音数正确，节奏时值非原曲。音准/错音/漏音/完整性四个维度可用；节奏维度请导入完整乐谱。","written":[67,67,69,67,72,71,67,67,69,67,74,72,67,67,79,76,72,71,69,77,77,76,72,74,72],"keys":{"written":{"transpose":0,"shift":0,"midi":[67,67,69,67,72,71,67,67,69,67,74,72,67,67,79,76,72,71,69,77,77,76,72,74,72]},"soprano":{"transpose":-2,"shift":0,"midi":[65,65,67,65,70,69,65,65,67,65,72,70,65,65,77,74,70,69,67,75,75,74,70,72,70]},"alto":{"transpose":-9,"shift":0,"midi":[58,58,60,58,63,62,58,58,60,58,65,63,58,58,70,67,63,62,60,68,68,67,63,65,63]},"tenor":{"transpose":-14,"shift":12,"midi":[65,65,67,65,70,69,65,65,67,65,72,70,65,65,77,74,70,69,67,75,75,74,70,72,70]},"baritone":{"transpose":-21,"shift":12,"midi":[58,58,60,58,63,62,58,58,60,58,65,63,58,58,70,67,63,62,60,68,68,67,63,65,63]}}},"seed_铃儿响叮当":{"title":"铃儿响叮当（副歌）","genre":"children","tempo_bpm":120.0,"note_value":"quarter","beats_per_measure":4,"copyright":"public_domain","copyright_basis":"James Lord Pierpont 1857 年创作《One Horse Open Sleigh》，作者卒于 1893 年，已过保护期","rhythm_caveat":"种子旋律为等时值骨架：音高序列与音数正确，节奏时值非原曲。音准/错音/漏音/完整性四个维度可用；节奏维度请导入完整乐谱。","written":[64,64,64,64,64,64,64,67,60,62,64,65,65,65,65,65,64,64,64,64,62,62,64,62,67],"keys":{"written":{"transpose":0,"shift":0,"midi":[64,64,64,64,64,64,64,67,60,62,64,65,65,65,65,65,64,64,64,64,62,62,64,62,67]},"soprano":{"transpose":-2,"shift":0,"midi":[62,62,62,62,62,62,62,65,58,60,62,63,63,63,63,63,62,62,62,62,60,60,62,60,65]},"alto":{"transpose":-9,"shift":12,"midi":[67,67,67,67,67,67,67,70,63,65,67,68,68,68,68,68,67,67,67,67,65,65,67,65,70]},"tenor":{"transpose":-14,"shift":12,"midi":[62,62,62,62,62,62,62,65,58,60,62,63,63,63,63,63,62,62,62,62,60,60,62,60,65]},"baritone":{"transpose":-21,"shift":24,"midi":[67,67,67,67,67,67,67,70,63,65,67,68,68,68,68,68,67,67,67,67,65,65,67,65,70]}}},"seed_两只老虎":{"title":"两只老虎","genre":"children","tempo_bpm":100.0,"note_value":"quarter","beats_per_measure":4,"copyright":"public_domain","copyright_basis":"曲调为传统法国童谣 Frère Jacques（雅克兄弟），18 世纪前已在欧洲流传，词曲均无在保护期内的权利人；C 大调移调书写","rhythm_caveat":"种子旋律为等时值骨架：音高序列与音数正确，节奏时值非原曲。音准/错音/漏音/完整性四个维度可用；节奏维度请导入完整乐谱。","written":[60,62,64,60,60,62,64,60,64,65,67,64,65,67,67,69,67,65,64,60,67,69,67,65,64,60,60,67,60,60,67,60],"keys":{"written":{"transpose":0,"shift":0,"midi":[60,62,64,60,60,62,64,60,64,65,67,64,65,67,67,69,67,65,64,60,67,69,67,65,64,60,60,67,60,60,67,60]},"soprano":{"transpose":-2,"shift":0,"midi":[58,60,62,58,58,60,62,58,62,63,65,62,63,65,65,67,65,63,62,58,65,67,65,63,62,58,58,65,58,58,65,58]},"alto":{"transpose":-9,"shift":12,"midi":[63,65,67,63,63,65,67,63,67,68,70,67,68,70,70,72,70,68,67,63,70,72,70,68,67,63,63,70,63,63,70,63]},"tenor":{"transpose":-14,"shift":12,"midi":[58,60,62,58,58,60,62,58,62,63,65,62,63,65,65,67,65,63,62,58,65,67,65,63,62,58,58,65,58,58,65,58]},"baritone":{"transpose":-21,"shift":24,"midi":[63,65,67,63,63,65,67,63,67,68,70,67,68,70,70,72,70,68,67,63,70,72,70,68,67,63,63,70,63,63,70,63]}}},"seed_伦敦桥":{"title":"伦敦桥","genre":"children","tempo_bpm":92.0,"note_value":"quarter","beats_per_measure":4,"copyright":"public_domain","copyright_basis":"曲调为英国传统童谣 London Bridge Is Falling Down，文献可上溯至 18 世纪，属传统曲调，多地区已过保护期","rhythm_caveat":"种子旋律为等时值骨架：音高序列与音数正确，节奏时值非原曲。音准/错音/漏音/完整性四个维度可用；节奏维度请导入完整乐谱。","written":[67,69,67,65,64,65,67,62,64,65,64,65,67,67,69,67,65,64,65,67,62,67,64,60],"keys":{"written":{"transpose":0,"shift":0,"midi":[67,69,67,65,64,65,67,62,64,65,64,65,67,67,69,67,65,64,65,67,62,67,64,60]},"soprano":{"transpose":-2,"shift":0,"midi":[65,67,65,63,62,63,65,60,62,63,62,63,65,65,67,65,63,62,63,65,60,65,62,58]},"alto":{"transpose":-9,"shift":12,"midi":[70,72,70,68,67,68,70,65,67,68,67,68,70,70,72,70,68,67,68,70,65,70,67,63]},"tenor":{"transpose":-14,"shift":12,"midi":[65,67,65,63,62,63,65,60,62,63,62,63,65,65,67,65,63,62,63,65,60,65,62,58]},"baritone":{"transpose":-21,"shift":24,"midi":[70,72,70,68,67,68,70,65,67,68,67,68,70,70,72,70,68,67,68,70,65,70,67,63]}}},"seed_划船歌":{"title":"划船歌","genre":"children","tempo_bpm":88.0,"note_value":"quarter","beats_per_measure":3,"copyright":"public_domain","copyright_basis":"曲调为 1852 年出版的美国歌曲 Row, Row, Row Your Boat，通行著录为传统/佚名，已过保护期；C 大调移调书写","rhythm_caveat":"种子旋律为等时值骨架：音高序列与音数正确，节奏时值非原曲。音准/错音/漏音/完整性四个维度可用；节奏维度请导入完整乐谱。","written":[60,60,60,62,64,64,62,64,65,67,72,72,72,67,67,67,64,64,64,60,60,60,67,65,64,62,60],"keys":{"written":{"transpose":0,"shift":0,"midi":[60,60,60,62,64,64,62,64,65,67,72,72,72,67,67,67,64,64,64,60,60,60,67,65,64,62,60]},"soprano":{"transpose":-2,"shift":0,"midi":[58,58,58,60,62,62,60,62,63,65,70,70,70,65,65,65,62,62,62,58,58,58,65,63,62,60,58]},"alto":{"transpose":-9,"shift":12,"midi":[63,63,63,65,67,67,65,67,68,70,75,75,75,70,70,70,67,67,67,63,63,63,70,68,67,65,63]},"tenor":{"transpose":-14,"shift":12,"midi":[58,58,58,60,62,62,60,62,63,65,70,70,70,65,65,65,62,62,62,58,58,58,65,63,62,60,58]},"baritone":{"transpose":-21,"shift":24,"midi":[63,63,63,65,67,67,65,67,68,70,75,75,75,70,70,70,67,67,67,63,63,63,70,68,67,65,63]}}},"seed_玛丽有只小羊羔":{"title":"玛丽有只小羊羔","genre":"children","tempo_bpm":104.0,"note_value":"quarter","beats_per_measure":4,"copyright":"public_domain","copyright_basis":"曲调为 1830 年代美国童谣 Mary Had a Little Lamb（1830 年首次刊行），已过保护期；C 大调移调书写","rhythm_caveat":"种子旋律为等时值骨架：音高序列与音数正确，节奏时值非原曲。音准/错音/漏音/完整性四个维度可用；节奏维度请导入完整乐谱。","written":[64,62,60,62,64,64,64,62,62,62,64,67,67,64,62,60,62,64,64,64,64,62,62,64,62,60],"keys":{"written":{"transpose":0,"shift":0,"midi":[64,62,60,62,64,64,64,62,62,62,64,67,67,64,62,60,62,64,64,64,64,62,62,64,62,60]},"soprano":{"transpose":-2,"shift":0,"midi":[62,60,58,60,62,62,62,60,60,60,62,65,65,62,60,58,60,62,62,62,62,60,60,62,60,58]},"alto":{"transpose":-9,"shift":12,"midi":[67,65,63,65,67,67,67,65,65,65,67,70,70,67,65,63,65,67,67,67,67,65,65,67,65,63]},"tenor":{"transpose":-14,"shift":12,"midi":[62,60,58,60,62,62,62,60,60,60,62,65,65,62,60,58,60,62,62,62,62,60,60,62,60,58]},"baritone":{"transpose":-21,"shift":24,"midi":[67,65,63,65,67,67,67,65,65,65,67,70,70,67,65,63,65,67,67,67,67,65,65,67,65,63]}}}};
+const PIECE_REFS = {"seed_小星星":{"title":"小星星","genre":"children","tempo_bpm":96.0,"note_value":"quarter","beats_per_measure":4,"copyright":"public_domain","copyright_basis":"曲调为传统法国民谣 Ah! vous dirai-je, Maman（18 世纪），多地区已过保护期","rhythm_caveat":"种子旋律为等时值骨架：音高序列与音数正确，节奏时值非原曲。音准/错音/漏音/完整性四个维度可用；节奏维度请导入完整乐谱。","written":[60,60,67,67,69,69,67,65,65,64,64,62,62,60,67,67,65,65,64,64,62,60,60,67,67,69,69,67,65,65,64,64,62,62,60],"keys":{"written":{"transpose":0,"shift":0,"midi":[60,60,67,67,69,69,67,65,65,64,64,62,62,60,67,67,65,65,64,64,62,60,60,67,67,69,69,67,65,65,64,64,62,62,60]},"soprano":{"transpose":-2,"shift":0,"midi":[58,58,65,65,67,67,65,63,63,62,62,60,60,58,65,65,63,63,62,62,60,58,58,65,65,67,67,65,63,63,62,62,60,60,58]},"alto":{"transpose":-9,"shift":12,"midi":[63,63,70,70,72,72,70,68,68,67,67,65,65,63,70,70,68,68,67,67,65,63,63,70,70,72,72,70,68,68,67,67,65,65,63]},"tenor":{"transpose":-14,"shift":12,"midi":[58,58,65,65,67,67,65,63,63,62,62,60,60,58,65,65,63,63,62,62,60,58,58,65,65,67,67,65,63,63,62,62,60,60,58]},"baritone":{"transpose":-21,"shift":24,"midi":[63,63,70,70,72,72,70,68,68,67,67,65,65,63,70,70,68,68,67,67,65,63,63,70,70,72,72,70,68,68,67,67,65,65,63]}}},"seed_欢乐颂":{"title":"欢乐颂（主题）","genre":"classical","tempo_bpm":88.0,"note_value":"quarter","beats_per_measure":4,"copyright":"public_domain","copyright_basis":"贝多芬《第九交响曲》第四乐章主题，作者卒于 1827 年；C 大调移调书写","rhythm_caveat":"种子旋律为等时值骨架：音高序列与音数正确，节奏时值非原曲。音准/错音/漏音/完整性四个维度可用；节奏维度请导入完整乐谱。","written":[64,64,65,67,67,65,64,62,60,60,62,64,64,62,62,60],"keys":{"written":{"transpose":0,"shift":0,"midi":[64,64,65,67,67,65,64,62,60,60,62,64,64,62,62,60]},"soprano":{"transpose":-2,"shift":0,"midi":[62,62,63,65,65,63,62,60,58,58,60,62,62,60,60,58]},"alto":{"transpose":-9,"shift":12,"midi":[67,67,68,70,70,68,67,65,63,63,65,67,67,65,65,63]},"tenor":{"transpose":-14,"shift":12,"midi":[62,62,63,65,65,63,62,60,58,58,60,62,62,60,60,58]},"baritone":{"transpose":-21,"shift":24,"midi":[67,67,68,70,70,68,67,65,63,63,65,67,67,65,65,63]}}},"seed_生日快乐":{"title":"生日快乐歌","genre":"children","tempo_bpm":108.0,"note_value":"quarter","beats_per_measure":3,"copyright":"public_domain","copyright_basis":"旋律版权 2016 年经美国法院（Warner/Chappell 案）判定进入公有领域","rhythm_caveat":"种子旋律为等时值骨架：音高序列与音数正确，节奏时值非原曲。音准/错音/漏音/完整性四个维度可用；节奏维度请导入完整乐谱。","written":[67,67,69,67,72,71,67,67,69,67,74,72,67,67,79,76,72,71,69,77,77,76,72,74,72],"keys":{"written":{"transpose":0,"shift":0,"midi":[67,67,69,67,72,71,67,67,69,67,74,72,67,67,79,76,72,71,69,77,77,76,72,74,72]},"soprano":{"transpose":-2,"shift":0,"midi":[65,65,67,65,70,69,65,65,67,65,72,70,65,65,77,74,70,69,67,75,75,74,70,72,70]},"alto":{"transpose":-9,"shift":0,"midi":[58,58,60,58,63,62,58,58,60,58,65,63,58,58,70,67,63,62,60,68,68,67,63,65,63]},"tenor":{"transpose":-14,"shift":12,"midi":[65,65,67,65,70,69,65,65,67,65,72,70,65,65,77,74,70,69,67,75,75,74,70,72,70]},"baritone":{"transpose":-21,"shift":12,"midi":[58,58,60,58,63,62,58,58,60,58,65,63,58,58,70,67,63,62,60,68,68,67,63,65,63]}}},"seed_铃儿响叮当":{"title":"铃儿响叮当（副歌）","genre":"children","tempo_bpm":120.0,"note_value":"quarter","beats_per_measure":4,"copyright":"public_domain","copyright_basis":"James Lord Pierpont 1857 年创作《One Horse Open Sleigh》，作者卒于 1893 年，已过保护期","rhythm_caveat":"种子旋律为等时值骨架：音高序列与音数正确，节奏时值非原曲。音准/错音/漏音/完整性四个维度可用；节奏维度请导入完整乐谱。","written":[64,64,64,64,64,64,64,67,60,62,64,65,65,65,65,65,64,64,64,64,62,62,64,62,67],"keys":{"written":{"transpose":0,"shift":0,"midi":[64,64,64,64,64,64,64,67,60,62,64,65,65,65,65,65,64,64,64,64,62,62,64,62,67]},"soprano":{"transpose":-2,"shift":0,"midi":[62,62,62,62,62,62,62,65,58,60,62,63,63,63,63,63,62,62,62,62,60,60,62,60,65]},"alto":{"transpose":-9,"shift":12,"midi":[67,67,67,67,67,67,67,70,63,65,67,68,68,68,68,68,67,67,67,67,65,65,67,65,70]},"tenor":{"transpose":-14,"shift":12,"midi":[62,62,62,62,62,62,62,65,58,60,62,63,63,63,63,63,62,62,62,62,60,60,62,60,65]},"baritone":{"transpose":-21,"shift":24,"midi":[67,67,67,67,67,67,67,70,63,65,67,68,68,68,68,68,67,67,67,67,65,65,67,65,70]}}},"seed_两只老虎":{"title":"两只老虎","genre":"children","tempo_bpm":100.0,"note_value":"quarter","beats_per_measure":4,"copyright":"public_domain","copyright_basis":"曲调为传统法国童谣 Frère Jacques（雅克兄弟），18 世纪前已在欧洲流传，词曲均无在保护期内的权利人；C 大调移调书写","rhythm_caveat":"种子旋律为等时值骨架：音高序列与音数正确，节奏时值非原曲。音准/错音/漏音/完整性四个维度可用；节奏维度请导入完整乐谱。","written":[60,62,64,60,60,62,64,60,64,65,67,64,65,67,67,69,67,65,64,60,67,69,67,65,64,60,60,67,60,60,67,60],"keys":{"written":{"transpose":0,"shift":0,"midi":[60,62,64,60,60,62,64,60,64,65,67,64,65,67,67,69,67,65,64,60,67,69,67,65,64,60,60,67,60,60,67,60]},"soprano":{"transpose":-2,"shift":0,"midi":[58,60,62,58,58,60,62,58,62,63,65,62,63,65,65,67,65,63,62,58,65,67,65,63,62,58,58,65,58,58,65,58]},"alto":{"transpose":-9,"shift":12,"midi":[63,65,67,63,63,65,67,63,67,68,70,67,68,70,70,72,70,68,67,63,70,72,70,68,67,63,63,70,63,63,70,63]},"tenor":{"transpose":-14,"shift":12,"midi":[58,60,62,58,58,60,62,58,62,63,65,62,63,65,65,67,65,63,62,58,65,67,65,63,62,58,58,65,58,58,65,58]},"baritone":{"transpose":-21,"shift":24,"midi":[63,65,67,63,63,65,67,63,67,68,70,67,68,70,70,72,70,68,67,63,70,72,70,68,67,63,63,70,63,63,70,63]}}},"seed_伦敦桥":{"title":"伦敦桥","genre":"children","tempo_bpm":92.0,"note_value":"quarter","beats_per_measure":4,"copyright":"public_domain","copyright_basis":"曲调为英国传统童谣 London Bridge Is Falling Down，文献可上溯至 18 世纪，属传统曲调，多地区已过保护期","rhythm_caveat":"种子旋律为等时值骨架：音高序列与音数正确，节奏时值非原曲。音准/错音/漏音/完整性四个维度可用；节奏维度请导入完整乐谱。","written":[67,69,67,65,64,65,67,62,64,65,64,65,67,67,69,67,65,64,65,67,62,67,64,60],"keys":{"written":{"transpose":0,"shift":0,"midi":[67,69,67,65,64,65,67,62,64,65,64,65,67,67,69,67,65,64,65,67,62,67,64,60]},"soprano":{"transpose":-2,"shift":0,"midi":[65,67,65,63,62,63,65,60,62,63,62,63,65,65,67,65,63,62,63,65,60,65,62,58]},"alto":{"transpose":-9,"shift":12,"midi":[70,72,70,68,67,68,70,65,67,68,67,68,70,70,72,70,68,67,68,70,65,70,67,63]},"tenor":{"transpose":-14,"shift":12,"midi":[65,67,65,63,62,63,65,60,62,63,62,63,65,65,67,65,63,62,63,65,60,65,62,58]},"baritone":{"transpose":-21,"shift":24,"midi":[70,72,70,68,67,68,70,65,67,68,67,68,70,70,72,70,68,67,68,70,65,70,67,63]}}},"seed_划船歌":{"title":"划船歌","genre":"children","tempo_bpm":88.0,"note_value":"quarter","beats_per_measure":3,"copyright":"public_domain","copyright_basis":"曲调为 1852 年出版的美国歌曲 Row, Row, Row Your Boat，通行著录为传统/佚名，已过保护期；C 大调移调书写","rhythm_caveat":"种子旋律为等时值骨架：音高序列与音数正确，节奏时值非原曲。音准/错音/漏音/完整性四个维度可用；节奏维度请导入完整乐谱。","written":[60,60,60,62,64,64,62,64,65,67,72,72,72,67,67,67,64,64,64,60,60,60,67,65,64,62,60],"keys":{"written":{"transpose":0,"shift":0,"midi":[60,60,60,62,64,64,62,64,65,67,72,72,72,67,67,67,64,64,64,60,60,60,67,65,64,62,60]},"soprano":{"transpose":-2,"shift":0,"midi":[58,58,58,60,62,62,60,62,63,65,70,70,70,65,65,65,62,62,62,58,58,58,65,63,62,60,58]},"alto":{"transpose":-9,"shift":12,"midi":[63,63,63,65,67,67,65,67,68,70,75,75,75,70,70,70,67,67,67,63,63,63,70,68,67,65,63]},"tenor":{"transpose":-14,"shift":12,"midi":[58,58,58,60,62,62,60,62,63,65,70,70,70,65,65,65,62,62,62,58,58,58,65,63,62,60,58]},"baritone":{"transpose":-21,"shift":24,"midi":[63,63,63,65,67,67,65,67,68,70,75,75,75,70,70,70,67,67,67,63,63,63,70,68,67,65,63]}}},"seed_玛丽有只小羊羔":{"title":"玛丽有只小羊羔","genre":"children","tempo_bpm":104.0,"note_value":"quarter","beats_per_measure":4,"copyright":"public_domain","copyright_basis":"曲调为 1830 年代美国童谣 Mary Had a Little Lamb（1830 年首次刊行），已过保护期；C 大调移调书写","rhythm_caveat":"种子旋律为等时值骨架：音高序列与音数正确，节奏时值非原曲。音准/错音/漏音/完整性四个维度可用；节奏维度请导入完整乐谱。","written":[64,62,60,62,64,64,64,62,62,62,64,67,67,64,62,60,62,64,64,64,64,62,62,64,62,60],"keys":{"written":{"transpose":0,"shift":0,"midi":[64,62,60,62,64,64,64,62,62,62,64,67,67,64,62,60,62,64,64,64,64,62,62,64,62,60]},"soprano":{"transpose":-2,"shift":0,"midi":[62,60,58,60,62,62,62,60,60,60,62,65,65,62,60,58,60,62,62,62,62,60,60,62,60,58]},"alto":{"transpose":-9,"shift":12,"midi":[67,65,63,65,67,67,67,65,65,65,67,70,70,67,65,63,65,67,67,67,67,65,65,67,65,63]},"tenor":{"transpose":-14,"shift":12,"midi":[62,60,58,60,62,62,62,60,60,60,62,65,65,62,60,58,60,62,62,62,62,60,60,62,60,58]},"baritone":{"transpose":-21,"shift":24,"midi":[67,65,63,65,67,67,67,65,65,65,67,70,70,67,65,63,65,67,67,67,67,65,65,67,65,63]}}},
+"seed_音阶练习_C大调":{"title":"C 大调上下行音阶","genre":"exercise","tempo_bpm":100,"note_value":"quarter","beats_per_measure":4,"copyright":"no_copyright","copyright_basis":"规则化技术练习（音阶/琶音/模进），非受版权保护的旋律；由本地程序按固定规则生成","rhythm_caveat":"种子旋律为等时值骨架：音高序列与音数正确，节奏时值非原曲。音准/错音/漏音/完整性四个维度可用；节奏维度请导入完整乐谱。","written":[60,62,64,65,67,69,71,72,72,71,69,67,65,64,62,60],"keys":{"written":{"transpose":0,"shift":0,"midi":[60,62,64,65,67,69,71,72,72,71,69,67,65,64,62,60]},"soprano":{"transpose":-2,"shift":0,"midi":[58,60,62,63,65,67,69,70,70,69,67,65,63,62,60,58]},"alto":{"transpose":-9,"shift":12,"midi":[63,65,67,68,70,72,74,75,75,74,72,70,68,67,65,63]},"tenor":{"transpose":-14,"shift":12,"midi":[58,60,62,63,65,67,69,70,70,69,67,65,63,62,60,58]},"baritone":{"transpose":-21,"shift":24,"midi":[63,65,67,68,70,72,74,75,75,74,72,70,68,67,65,63]}}},
+"seed_琶音练习_C大三和弦":{"title":"C 大三和弦琶音上下行","genre":"exercise","tempo_bpm":92,"note_value":"quarter","beats_per_measure":3,"copyright":"no_copyright","copyright_basis":"规则化技术练习（音阶/琶音/模进），非受版权保护的旋律；由本地程序按固定规则生成","rhythm_caveat":"种子旋律为等时值骨架：音高序列与音数正确，节奏时值非原曲。音准/错音/漏音/完整性四个维度可用；节奏维度请导入完整乐谱。","written":[60,64,67,72,76,79,79,76,72,67,64,60],"keys":{"written":{"transpose":0,"shift":0,"midi":[60,64,67,72,76,79,79,76,72,67,64,60]},"soprano":{"transpose":-2,"shift":0,"midi":[58,62,65,70,74,77,77,74,70,65,62,58]},"alto":{"transpose":-9,"shift":12,"midi":[63,67,70,75,79,82,82,79,75,70,67,63]},"tenor":{"transpose":-14,"shift":12,"midi":[58,62,65,70,74,77,77,74,70,65,62,58]},"baritone":{"transpose":-21,"shift":24,"midi":[63,67,70,75,79,82,82,79,75,70,67,63]}}},
+"seed_五声音阶模进_C大调":{"title":"C 大调五声音阶模进","genre":"exercise","tempo_bpm":96,"note_value":"quarter","beats_per_measure":4,"copyright":"no_copyright","copyright_basis":"规则化技术练习（音阶/琶音/模进），非受版权保护的旋律；由本地程序按固定规则生成","rhythm_caveat":"种子旋律为等时值骨架：音高序列与音数正确，节奏时值非原曲。音准/错音/漏音/完整性四个维度可用；节奏维度请导入完整乐谱。","written":[60,62,64,67,69,72,69,67,64,62,60,62,64,67,69,72,76,72,69,67,64,62,60],"keys":{"written":{"transpose":0,"shift":0,"midi":[60,62,64,67,69,72,69,67,64,62,60,62,64,67,69,72,76,72,69,67,64,62,60]},"soprano":{"transpose":-2,"shift":0,"midi":[58,60,62,65,67,70,67,65,62,60,58,60,62,65,67,70,74,70,67,65,62,60,58]},"alto":{"transpose":-9,"shift":12,"midi":[63,65,67,70,72,75,72,70,67,65,63,65,67,70,72,75,79,75,72,70,67,65,63]},"tenor":{"transpose":-14,"shift":12,"midi":[58,60,62,65,67,70,67,65,62,60,58,60,62,65,67,70,74,70,67,65,62,60,58]},"baritone":{"transpose":-21,"shift":24,"midi":[63,65,67,70,72,75,72,70,67,65,63,65,67,70,72,75,79,75,72,70,67,65,63]}}},
+"seed_三连音音阶片段_C大调":{"title":"C 大调三连音音阶片段","genre":"exercise","tempo_bpm":90,"note_value":"quarter","beats_per_measure":4,"copyright":"no_copyright","copyright_basis":"规则化技术练习（音阶/琶音/模进），非受版权保护的旋律；由本地程序按固定规则生成","rhythm_caveat":"种子旋律为等时值骨架：音高序列与音数正确，节奏时值非原曲。音准/错音/漏音/完整性四个维度可用；节奏维度请导入完整乐谱。","written":[60,62,64,60,62,64,65,67,69,65,67,69,67,65,64,67,65,64,62,64,62,60,62,64,62,60],"keys":{"written":{"transpose":0,"shift":0,"midi":[60,62,64,60,62,64,65,67,69,65,67,69,67,65,64,67,65,64,62,64,62,60,62,64,62,60]},"soprano":{"transpose":-2,"shift":0,"midi":[58,60,62,58,60,62,63,65,67,63,65,67,65,63,62,65,63,62,60,62,60,58,60,62,60,58]},"alto":{"transpose":-9,"shift":12,"midi":[63,65,67,63,65,67,68,70,72,68,70,72,70,68,67,70,68,67,65,67,65,63,65,67,65,63]},"tenor":{"transpose":-14,"shift":12,"midi":[58,60,62,58,60,62,63,65,67,63,65,67,65,63,62,65,63,62,60,62,60,58,60,62,60,58]},"baritone":{"transpose":-21,"shift":24,"midi":[63,65,67,63,65,67,68,70,72,68,70,72,70,68,67,70,68,67,65,67,65,63,65,67,65,63]}}},
+"seed_级进模进练习_C大调":{"title":"C 大调级进模进练习","genre":"exercise","tempo_bpm":104,"note_value":"quarter","beats_per_measure":4,"copyright":"no_copyright","copyright_basis":"规则化技术练习（音阶/琶音/模进），非受版权保护的旋律；由本地程序按固定规则生成","rhythm_caveat":"种子旋律为等时值骨架：音高序列与音数正确，节奏时值非原曲。音准/错音/漏音/完整性四个维度可用；节奏维度请导入完整乐谱。","written":[60,62,64,65,67,69,67,65,64,62,64,65,67,69,71,69,67,65,64,65,67,69,71,72,71,69,67,65,67,69,71,72,74,72,71,69,67,65,64,62,60,62,64,62,60],"keys":{"written":{"transpose":0,"shift":0,"midi":[60,62,64,65,67,69,67,65,64,62,64,65,67,69,71,69,67,65,64,65,67,69,71,72,71,69,67,65,67,69,71,72,74,72,71,69,67,65,64,62,60,62,64,62,60]},"soprano":{"transpose":-2,"shift":0,"midi":[58,60,62,63,65,67,65,63,62,60,62,63,65,67,69,67,65,63,62,63,65,67,69,70,69,67,65,63,65,67,69,70,72,70,69,67,65,63,62,60,58,60,62,60,58]},"alto":{"transpose":-9,"shift":12,"midi":[63,65,67,68,70,72,70,68,67,65,67,68,70,72,74,72,70,68,67,68,70,72,74,75,74,72,70,68,70,72,74,75,77,75,74,72,70,68,67,65,63,65,67,65,63]},"tenor":{"transpose":-14,"shift":12,"midi":[58,60,62,63,65,67,65,63,62,60,62,63,65,67,69,67,65,63,62,63,65,67,69,70,69,67,65,63,65,67,69,70,72,70,69,67,65,63,62,60,58,60,62,60,58]},"baritone":{"transpose":-21,"shift":24,"midi":[63,65,67,68,70,72,70,68,67,65,67,68,70,72,74,72,70,68,67,68,70,72,74,75,74,72,70,68,70,72,74,75,77,75,74,72,70,68,67,65,63,65,67,65,63]}}}};
 
 /* ==================================================================
    PART E · 曲库模式 / 打卡台账
@@ -1531,15 +1597,15 @@ function libLoadSeed(seedKey){
 function libSelftest(){
   const out = [];
   const ok = (c, m) => out.push((c ? "PASS" : "FAIL") + " · " + m);
-  ok(PIECES_LIB.items.length === 235, "内嵌索引条数 = 235（实测 " + PIECES_LIB.items.length + "）");
+  ok(PIECES_LIB.items.length === 240, "内嵌索引条数 = 240（实测 " + PIECES_LIB.items.length + "）");
   ok(PIECES_LIB.items.every(i => !("score" in i) && !("notes" in i) && !("midi" in i)), "索引内不含任何乐谱/音符字段");
   const seedTitles = Object.keys(PIECE_REFS).map(k => PIECE_REFS[k].title);
-  ok(seedTitles.length === 8, "公版种子条数 = 8（实测 " + seedTitles.length + "）");
+  ok(seedTitles.length === 13, "公版种子条数 = 13（实测 " + seedTitles.length + "）");
   const libSeeds = PIECES_LIB.items.filter(i => i.k).map(i => i.k).sort();
-  ok(libSeeds.length === 8, "索引内带种子标记的条目 = 8（实测 " + libSeeds.length + "）");
+  ok(libSeeds.length === 13, "索引内带种子标记的条目 = 13（实测 " + libSeeds.length + "）");
   ok(JSON.stringify(libSeeds) === JSON.stringify(Object.keys(PIECE_REFS).sort()),
      "索引种子标记与 PIECE_REFS 键集合一致");
-  ok((PIECES_LIB.seeds || []).length === 8, "索引顶层 seeds 清单 = 8 条");
+  ok((PIECES_LIB.seeds || []).length === 13, "索引顶层 seeds 清单 = 13 条");
   let shapeOk = true, lenOk = true, rangeOk = true;
   Object.keys(PIECE_REFS).forEach(k => {
     const s = PIECE_REFS[k];
@@ -4712,9 +4778,9 @@ function renderManualKeyBox(forceOn){
     box.style.marginTop = "12px";
     box.innerHTML =
       '<div class="field" style="flex:0 0 auto">' +
-        '<label><input type="checkbox" id="manualKey" style="width:auto;margin-right:6px">自选调性（显式指定，非机构要求）</label>' +
+        '<label><input type="checkbox" id="manualKey" style="width:auto;margin-right:6px" aria-label="手动定调">自选调性（显式指定，非机构要求）</label>' +
       "</div>" +
-      '<div class="field"><label>主音</label><select id="manualTonic"></select></div>' +
+      '<div class="field"><label>主音</label><select id="manualTonic" aria-label="手动调性"></select></div>' +
       '<div class="field"><label>调式</label><select id="manualMode">' +
         Object.keys(MODE_NAME_CN).map(k => '<option value="' + k + '">' + esc(MODE_NAME_CN[k]) + "</option>").join("") +
       "</select></div>";
@@ -5311,6 +5377,48 @@ function extractEnsureSplit(){
   return { mode: "split", k: k };
 }
 
+/* D4 拍号自动推导：按音符 onset 对齐小节的圆方差评分，从 4/4、3/4、2/4、6/8 中选最优；
+   6/8 仅当音间间隔中值 ≤ 0.55 拍（八分音符为主）时才采纳，否则回落 4/4（避免误判） */
+function extractDetectTimeSig(seg, secPerBeat){
+  const cands = [["4/4", 4], ["3/4", 3], ["2/4", 2], ["6/8", 6]];
+  let best = "4/4", bestScore = -1;
+  for (let ci = 0; ci < cands.length; ci++){
+    const ts = cands[ci][0], bpm = cands[ci][1];
+    const T = bpm * secPerBeat;
+    let sx = 0, sy = 0, n = 0;
+    for (let i = 0; i < seg.length; i++){
+      const t = seg[i].onset_sec;
+      const ph = 2 * Math.PI * (((t % T) + T) % T) / T;
+      sx += Math.cos(ph); sy += Math.sin(ph); n++;
+    }
+    const R = n > 0 ? Math.sqrt(sx * sx + sy * sy) / n : 0;
+    if (R > bestScore){ bestScore = R; best = ts; }
+  }
+  if (best === "6/8"){
+    const iois = [];
+    for (let i = 1; i < seg.length; i++) iois.push(seg[i].onset_sec - seg[i - 1].onset_sec);
+    iois.sort(function(a, b){ return a - b; });
+    const med = iois.length ? iois[Math.floor(iois.length / 2)] : secPerBeat;
+    if (med / secPerBeat > 0.62) best = "4/4";   /* 非八分音符为主的旋律不选复合拍 */
+  }
+  return { time_sig: best, beats_per_measure: jianpuBeatsPerMeasure(best) };
+}
+/* D4 三连音识别：连续 3 个音符 onset 间隔与时长均 ≈ 2/3 拍（容差 22%）时，
+   把三者时值改写为 1/3 拍并打 _triplet 标记，供 staveRender 渲染 "3" 与简谱等分显示 */
+function extractMarkTriplets(notes, secPerBeat){
+  const T2 = (2 / 3) * secPerBeat;
+  const near = x => Math.abs(x - T2) < 0.22 * secPerBeat;
+  for (let i = 0; i + 2 < notes.length; i++){
+    const a = notes[i], b = notes[i + 1], c = notes[i + 2];
+    const d1 = b.onset_sec - a.onset_sec, d2 = c.onset_sec - b.onset_sec;
+    if (!near(d1) || !near(d2)) continue;
+    if (!near(a.dur_sec) || !near(b.dur_sec) || !near(c.dur_sec)) continue;
+    [a, b, c].forEach(function(n){ n.dur_sec = secPerBeat / 3; n._triplet = true; });
+    i += 2;
+  }
+  return notes;
+}
+
 function extractMelodyFromAudio(audio, opts){
   opts = opts || {};
   if (!audio || !audio.data || !audio.data.length) throw new Error("没有可分析的音频，请先选择音频文件");
@@ -5320,9 +5428,10 @@ function extractMelodyFromAudio(audio, opts){
   const inst = opts.instrument || "vocal";
   if (!INSTRUMENTS[inst]) throw new Error("未知声源类型：" + inst);
   const tempoHint = (Number(opts.tempo_bpm) > 0 ? Number(opts.tempo_bpm) : null);
-  const timeSig = String(opts.time_sig || "4/4");
-  const gridPerBeat = Math.max(1, Number(opts.grid_per_beat) || EXTRACT_GRID_PER_BEAT);
-  const beatsPerMeasure = jianpuBeatsPerMeasure(timeSig);
+  const timeSigRaw = String(opts.time_sig || "4/4");
+  let timeSig = timeSigRaw;
+  let beatsPerMeasure = jianpuBeatsPerMeasure(timeSig);
+  let autoTimeSig = false;
 
   const targetSr = targetSrFor(inst);
   const ds = downsample(srcData, srcSr, targetSr);
@@ -5334,6 +5443,10 @@ function extractMelodyFromAudio(audio, opts){
 
   const secPerBeat = extractEstimateBeatSec(seg, tempoHint);
   const tempoBpm = Number((60.0 / secPerBeat).toFixed(3));
+  if (timeSigRaw === "auto"){
+    const det = extractDetectTimeSig(seg, secPerBeat);
+    timeSig = det.time_sig; beatsPerMeasure = det.beats_per_measure; autoTimeSig = true;
+  }
   let keyInfo;
   if (opts.key){
     const pc = parseKey(jianpuNormKey(opts.key));
@@ -5343,12 +5456,14 @@ function extractMelodyFromAudio(audio, opts){
     keyInfo = extractDetectKey(seg);
   }
   const notes = extractQuantize(seg, beatsPerMeasure, secPerBeat, gridPerBeat);
+  extractMarkTriplets(notes, secPerBeat);   /* D4：识别三连音并改写时值供渲染 */
   let mx = 0, lo = Infinity, hi = -Infinity;
   notes.forEach(function(n){
     mx = Math.max(mx, n.onset_sec + n.dur_sec);
     lo = Math.min(lo, n.midi); hi = Math.max(hi, n.midi);
   });
   const warnings = [];
+  if (autoTimeSig) warnings.push("拍号为自动推导（" + timeSig + "），如需修正可手动指定后重跑");
   if (!tempoHint) warnings.push("速度由音间间隔自动估计（" + tempoBpm + " BPM），结果对节拍解释敏感");
   if (keyInfo.score !== null && keyInfo.score < 0.75) warnings.push("调性自动判断置信度偏低，建议手动指定调性后重跑");
   if (opts.from_vocal_track) warnings.push("基于人声轨分析：已用 mid/side 中置声道法分离（k=" +
@@ -5622,7 +5737,7 @@ function staveRender(svg, notes, meta, keyName, tonicPc){
       const a = laid[i], b = laid[i + 1], c = laid[i + 2];
       if (a.rest || b.rest || c.rest) continue;
       if (Math.abs(a.dur - b.dur) > 0.05 || Math.abs(b.dur - c.dur) > 0.05) continue;
-      if (a.dur < 0.9 || a.dur > 1.15) continue;   /* 每音约 1/3 拍 */
+      if (a.dur < 0.28 || a.dur > 0.40) continue;   /* D4：三连音每音时值 ≈ 1/3 拍（原阈值误为 0.9-1.15） */
       const topY = Math.min.apply(null, [a, b, c].map(function(p){
         const pc = stavePitchClass(p.midi);
         const nm = useFlat ? STAVE_FLAT_NAMES[pc] : STAVE_PITCH_NAMES[pc];
@@ -6281,6 +6396,277 @@ function metricCard(k, v, cls){
   return '<div class="metric"><div class="v ' + (cls || "") + '">' + v + '</div><div class="k">' + k + "</div></div>";
 }
 
+/* ========== D 批新增功能（D1 逐音倾向 / D2 会话统计分享 / D3 八度锁 / D5 明日练习包 / D6 节拍器 / D9 离线报告） ========== */
+/* D1 逐音倾向统计：按音名聚合最近 N 次偏差均值/标准差，存 localStorage（本机，不上传） */
+const TENDENCY_KEY = "yinzhen_tendency";
+const TENDENCY_WINDOW = 90;
+function tendencyLoad(){
+  try { return JSON.parse(localStorage.getItem(TENDENCY_KEY)) || { stats: {} }; } catch (e){ return { stats: {} }; }
+}
+function tendencySave(o){
+  try { localStorage.setItem(TENDENCY_KEY, JSON.stringify(o)); } catch (e){}
+}
+function tendencyTop(store, k){
+  const out = [];
+  for (const name in store.stats){
+    const s = store.stats[name];
+    if (s.n < 2) continue;
+    const mean = s.sum / s.n;
+    const variance = Math.max(0, s.sum2 / s.n - mean * mean);
+    out.push({ name: name, n: s.n, mean: mean, std: Math.sqrt(variance) });
+  }
+  out.sort(function(a, b){ return Math.abs(b.mean) - Math.abs(a.mean); });
+  return out.slice(0, k || 5);
+}
+function tendencyRecord(d){
+  const matched = d._matched || [];
+  if (!matched.length) return null;
+  const store = tendencyLoad();
+  const stats = store.stats || (store.stats = {});
+  let any = false;
+  matched.forEach(function(m){
+    if (Math.abs(m.semitone_diff || 0) >= 0.5) return;   /* 只统计「对上」的音 */
+    const name = String(m.expected || "");
+    const cents = Number(m.cents);
+    if (!name || !isFinite(cents)) return;
+    if (!stats[name]) stats[name] = { n: 0, sum: 0, sum2: 0 };
+    const s = stats[name];
+    s.n++; s.sum += cents; s.sum2 += cents * cents;
+    if (s.n > TENDENCY_WINDOW){
+      const keep = Math.max(10, Math.floor(s.n * 0.8));
+      s.sum *= keep / s.n; s.sum2 *= keep / s.n; s.n = keep;
+    }
+    any = true;
+  });
+  if (!any) return null;
+  store.updated = Date.now();
+  tendencySave(store);
+  return tendencyTop(store, 4);
+}
+function tendencyCardHtml(top){
+  if (!top || !top.length) return '<div class="note">连续完成几次练习后，这里会告诉你「哪个音总吹不准」。</div>';
+  const rows = top.map(function(t){
+    const dir = t.mean > 0 ? "偏高" : "偏低";
+    const sev = Math.abs(t.mean) >= 25 ? "bad" : (Math.abs(t.mean) >= 10 ? "warn" : "ok");
+    return '<span class="' + sev + '">' + esc(t.name) + "</span> 常" + dir + " " + fmtNum(Math.abs(t.mean), 1) + " 音分（近 " + t.n + " 次，波动 ±" + fmtNum(t.std, 1) + "）";
+  });
+  return rows.join("<br>");
+}
+/* D2 会话统计与分享卡 */
+function sessionStatsOf(d){
+  const it = d.intonation || {}, rp = d.rhythm || {}, cp = d.completeness || {};
+  const matched = d._matched || [];
+  let worst = null;
+  matched.forEach(function(m){
+    if (Math.abs(m.semitone_diff || 0) >= 0.5) return;
+    const a = Math.abs(m.cents);
+    if (!worst || a > worst.abs) worst = { name: m.expected, abs: a, cents: m.cents, at: "m" + m.measure + " b" + m.beat };
+  });
+  const secs = (APP.audio && APP.audio.data) ? APP.audio.data.length / APP.audio.sr : 0;
+  const min = secs > 0 ? Math.max(1, Math.round(secs / 60)) : 0;
+  const scored = it.n_notes_scored || matched.length;
+  const tol = it.tol_cents || 25;
+  const hit = it.hit_rate != null ? it.hit_rate
+    : (scored ? 100 * matched.filter(function(m){ return Math.abs(m.cents) <= tol; }).length / scored : 0);
+  return {
+    total: d.summary ? d.summary.total : scored,
+    hit_rate: Number(hit.toFixed ? hit.toFixed(1) : hit),
+    wrong: d.summary ? d.summary.wrong : ((d.wrong_notes || []).length),
+    missing: d.summary ? d.summary.missing : ((d.missing_notes || []).length),
+    worst: worst,
+    minutes: min,
+    score: d.scores ? d.scores.overall : null
+  };
+}
+function sessionShareTextOf(st){
+  const lines = [
+    "【音准诊断 · 练习小结】",
+    "练习约 " + st.minutes + " 分钟，" + st.total + " 个音",
+    "音准命中率 " + fmtNum(st.hit_rate, 1) + "%",
+    "错音 " + st.wrong + " 处、漏音/未检出 " + st.missing + " 处",
+    st.worst ? "最不稳的音：" + st.worst.name + "（偏差 " + fmtNum(st.worst.cents, 1) + " 音分）" : "最不稳的音：无",
+    st.score != null ? "音准分数 " + fmtNum(st.score, 0) + "/100" : null,
+    "—— 音准诊断·单文件版"
+  ].filter(function(x){ return !!x; });
+  return lines.join("\n");
+}
+function shareSession(){
+  const d = APP.result;
+  if (!d){ setStatus("还没有诊断结果，先完成一次诊断", "err"); return; }
+  const text = sessionShareTextOf(sessionStatsOf(d));
+  try {
+    copyTextToClipboard(text);
+    setStatus("练习小结已复制，可粘贴到微信发给朋友", "ok");
+    const out = $("sessionShareOut");
+    if (out){ out.classList.remove("hidden"); out.textContent = text; }
+  } catch (e){
+    setStatus("自动复制失败，请手动复制下方文本", "err");
+    const out = $("sessionShareOut");
+    if (out){ out.classList.remove("hidden"); out.textContent = text; }
+  }
+}
+/* D3 参考音八度范围锁：目标音 ±1 八度内才算有效，提示往低/往高吹 */
+function rangeLockHint(targetMidi, curMidi, refA){
+  const td = Math.abs(curMidi - targetMidi);
+  if (td <= 12) return null;
+  const dir = curMidi > targetMidi ? "高" : "低";
+  const oct = Math.round((td - 1e-6) / 12);
+  return "离目标音" + (oct > 1 ? "约 " + oct + " 个" : "1 个") + " 八度了，请往" + (dir === "高" ? "低" : "高") + "吹一点（目标 " + midiToName(targetMidi) + "）";
+}
+/* D5 明日练习包：根据本次最差音生成 3 分钟练习序列（数据全来自本地，零网络） */
+const TOMORROW_KEY = "yinzhen_tomorrow";
+function tomorrowPlanBuild(d){
+  const matched = d._matched || [];
+  let worst = null;
+  matched.forEach(function(m){
+    if (Math.abs(m.semitone_diff || 0) >= 0.5) return;
+    if (!worst || Math.abs(m.cents) > Math.abs(worst.cents)) worst = m;
+  });
+  const plan = { built_at: Date.now(), focus: null, focus_midi: null, steps: [], note: "" };
+  const it = d.intonation || {};
+  if (worst){
+    plan.focus = worst.expected;
+    try { plan.focus_midi = nameToMidi(worst.expected); } catch (e){ plan.focus_midi = null; }
+    plan.note = "下次重点盯「" + worst.expected + "」（本次偏差 " + fmtNum(worst.cents, 1) + " 音分）";
+  } else if (it.bias_cents !== null && Math.abs(it.bias_cents) >= 5){
+    plan.note = "整体偏" + (it.bias_cents < 0 ? "低" : "高") + " " + fmtNum(Math.abs(it.bias_cents), 0) + " 音分，下次先练长音稳定气息";
+  } else {
+    plan.note = "整体音准已很稳，明天做曲目巩固";
+  }
+  plan.steps = [
+    { label: "长音（每音 4 拍，慢练气息）", noteValue: "whole" },
+    { label: "相邻音慢速模进（二分音符）", noteValue: "half" },
+    { label: "目标音与上下音交替（四分音符）", noteValue: "quarter" }
+  ];
+  try { localStorage.setItem(TOMORROW_KEY, JSON.stringify(plan)); } catch (e){}
+  return plan;
+}
+function tomorrowApply(plan){
+  if (!plan || !plan.focus_midi) return;
+  const base = plan.focus_midi;
+  const neighbors = [base - 2, base, base + 2, base + 1].filter(function(m){ return m >= 48 && m <= 84; });
+  const notes = buildSequence(neighbors, 60, "quarter", 4, 1, 0);
+  setRef(notes, { time_sig: "4/4", tempo_bpm: 60, key_label: midiToName(60) + " 大调" }, "明日练习包 · " + plan.focus);
+  setStatus("已载入明日练习包（重点音：" + plan.focus + "），点「去诊断」即可开练", "ok");
+  switchUI("full");
+}
+/* D6 节拍器：Web Audio 振荡器，可调 BPM，纯本地 */
+const METRO = { on: false, bpm: 90, vol: 0.5, ctx: null, timer: null, nextT: 0, beat: 0 };
+function metroTick(){
+  const m = METRO;
+  if (!m.ctx) return;
+  try {
+    while (m.nextT < m.ctx.currentTime + 0.12){
+      const t = m.nextT;
+      const osc = m.ctx.createOscillator(), gain = m.ctx.createGain();
+      osc.type = "square";
+      osc.frequency.value = (m.beat % 4 === 0) ? 880 : 660;
+      gain.gain.setValueAtTime(m.vol, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+      osc.connect(gain); gain.connect(m.ctx.destination);
+      osc.start(t); osc.stop(t + 0.06);
+      m.nextT += 60.0 / m.bpm;
+      m.beat++;
+    }
+  } catch (e){}
+}
+function metroStart(){
+  const m = METRO;
+  if (m.on) return;
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return;
+  if (!m.ctx) m.ctx = new AC();
+  if (m.ctx.state === "suspended"){ try { m.ctx.resume(); } catch (e){} }
+  m.on = true; m.nextT = m.ctx.currentTime + 0.05; m.beat = 0;
+  m.timer = setInterval(metroTick, 40);
+}
+function metroStop(){
+  const m = METRO;
+  m.on = false;
+  if (m.timer){ clearInterval(m.timer); m.timer = null; }
+  try { if (m.ctx && m.ctx.state !== "closed") m.ctx.close(); } catch (e){}
+  m.ctx = null;
+}
+function metroToggle(){
+  const btn = $("metroToggle");
+  if (METRO.on){ metroStop(); if (btn) btn.textContent = "节拍器 关"; }
+  else { metroStart(); if (btn) btn.textContent = "节拍器 开"; }
+}
+function metroInit(){
+  const btn = $("metroToggle"), bpm = $("metroBpm"), val = $("metroBpmVal");
+  if (!btn) return;
+  btn.addEventListener("click", metroToggle);
+  if (bpm && val){
+    bpm.addEventListener("input", function(){
+      METRO.bpm = Math.max(40, Math.min(220, Number(bpm.value) || 90));
+      val.textContent = String(METRO.bpm);
+    });
+  }
+}
+/* D9 离线诊断报告：五线谱（若有）+ 逐音表 + 趋势图 合并为单页 HTML，零依赖可离线打开 */
+function reportHtmlOf(d){
+  const st = sessionStatsOf(d);
+  const it = d.intonation || {}, rp = d.rhythm || {};
+  const rows = [];
+  (d._matched || []).forEach(function(m){
+    const isWrong = Math.abs(m.semitone_diff || 0) >= 0.5;
+    const sev = isWrong ? "bad" : (Math.abs(m.cents) <= (it.tol_cents || 25) ? "ok" : "warn");
+    rows.push("<tr><td>m" + m.measure + " b" + m.beat + "</td><td>" + esc(m.expected) + "</td><td>" + esc(m.played) +
+      "</td><td>" + fmtNum(m.cents, 1) + "</td><td class='" + sev + "'>" + (isWrong ? "错音" : (sev === "ok" ? "准" : "偏")) + "</td></tr>");
+  });
+  (d.missing_notes || []).forEach(function(m){
+    rows.push("<tr><td>m" + m.measure + " b" + m.beat + "</td><td>" + esc(m.expected) + "</td><td>—</td><td>—</td><td class='warn'>漏音</td></tr>");
+  });
+  let staveHtml = "";
+  try {
+    const svg = document.getElementById("extractStave") || document.getElementById("staveSvg");
+    if (svg && svg.getAttribute && svg.getAttribute("viewBox")){
+      const clone = svg.cloneNode(true);
+      clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+      clone.setAttribute("width", "100%");
+      staveHtml = '<h2>五线谱</h2><div class="stavebox">' + clone.outerHTML + "</div>";
+    }
+  } catch (e){}
+  let trendHtml = "";
+  try {
+    const cvs = document.getElementById("chart");
+    if (cvs && cvs.width > 0){
+      trendHtml = '<h2>练习趋势</h2><img src="' + cvs.toDataURL("image/png") + '" alt="趋势图" style="max-width:100%">';
+    }
+  } catch (e){}
+  const ver = new Date().toLocaleString();
+  return "<!DOCTYPE html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'>" +
+    "<title>音准诊断报告</title><style>body{font-family:system-ui,-apple-system,sans-serif;max-width:820px;margin:0 auto;padding:24px;color:#222}" +
+    "h1{font-size:22px}h2{font-size:16px;margin-top:22px}table{border-collapse:collapse;width:100%;font-size:14px}" +
+    "th,td{border:1px solid #ddd;padding:6px 8px;text-align:left}.ok{color:#1E8E5A}.warn{color:#C77800}.bad{color:#d33}" +
+    ".meta{color:#666;font-size:13px}.stavebox{overflow-x:auto}.note{color:#666;font-size:13px}</style></head><body>" +
+    "<h1>音准诊断报告</h1><div class='meta'>生成时间：" + esc(ver) + "<br>" +
+    "练习约 " + st.minutes + " 分钟，" + st.total + " 个音 · 命中率 " + fmtNum(st.hit_rate, 1) + "% · " +
+    "错音 " + st.wrong + " 处 · 漏音 " + st.missing + " 处 · 最不稳音 " + (st.worst ? esc(st.worst.name) : "无") + "</div>" +
+    (staveHtml ? "<div>" + staveHtml + "</div>" : "") +
+    "<h2>逐音明细</h2><div class='note'>音分偏差 = 实际发声音高 − 谱面应奏（正值偏高、负值偏低）；「漏音」含未被检出的可能，需人工复核。</div>" +
+    "<table><thead><tr><th>位置</th><th>谱面应奏</th><th>实际检测</th><th>音分偏差</th><th>状态</th></tr></thead><tbody>" +
+    (rows.length ? rows.join("") : "<tr><td colspan='5'>无逐音数据</td></tr>") + "</tbody></table>" +
+    (trendHtml ? "<div>" + trendHtml + "</div>" : "") +
+    "<p class='note'>本报告由音准诊断·单文件版离线生成，仅作练习参考，不替代真人教师；全部数据仅存本机，未上传。</p>" +
+    "</body></html>";
+}
+function saveReportHtml(){
+  const d = APP.result;
+  if (!d){ setStatus("还没有诊断结果", "err"); return; }
+  try {
+    const html = reportHtmlOf(d);
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "音准诊断报告_" + new Date().toISOString().slice(0, 10) + ".html";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 3000);
+    setStatus("离线诊断报告已保存（单页 HTML，可离线打开/打印/发给老师）", "ok");
+  } catch (e){ setStatus("报告生成失败：" + e.message, "err"); }
+}
+
 function renderResult(d, r){
   const it = d.intonation, rp = d.rhythm, cp = d.completeness, al = d.alignment, sc = d.scores;
 
@@ -6478,6 +6864,38 @@ function renderResult(d, r){
   $("textReport").textContent = renderText(d, 8);
   show("textCard", true);
 
+  /* D1 逐音倾向统计（含本次记录） */
+  const topT = tendencyRecord(d);
+  const tendEl = $("tendencyBody");
+  if (tendEl) tendEl.innerHTML = tendencyCardHtml(topT);
+  show("tendencyCard", true);
+
+  /* D2 会话统计 */
+  const st2 = sessionStatsOf(d);
+  const sessEl = $("sessionStatsBody");
+  if (sessEl){
+    sessEl.innerHTML = "练习约 " + st2.minutes + " 分钟，" + st2.total + " 个音<br>" +
+      "音准命中率 <b>" + fmtNum(st2.hit_rate, 1) + "%</b>（错音 " + st2.wrong + " 处、漏音/未检出 " + st2.missing + " 处）<br>" +
+      "最不稳的音：" + (st2.worst ? esc(st2.worst.name) + "（偏差 " + fmtNum(st2.worst.cents, 1) + " 音分）" : "无") +
+      (st2.score != null ? " · 音准分数 " + fmtNum(st2.score, 0) + "/100" : "");
+  }
+  show("sessionCard", true);
+
+  /* D5 明日练习包 */
+  const tplan = tomorrowPlanBuild(d);
+  const tmEl = $("tomorrowBody");
+  if (tmEl){
+    tmEl.innerHTML = esc(tplan.note) + "<br>建议练习：" + tplan.steps.map(function(s){ return esc(s.label); }).join(" → ");
+    if (tplan.focus_midi){
+      tmEl.innerHTML += '<br><button class="ghost" id="btnApplyTomorrow">载入明日练习包（含参考音）</button>';
+      const b1 = $("btnApplyTomorrow");
+      if (b1) b1.addEventListener("click", function(){ tomorrowApply(tplan); });
+    } else {
+      tmEl.innerHTML += "<br><span class='note'>本次没有足够逐音数据，做完一次录音诊断后即可生成。</span>";
+    }
+  }
+  show("tomorrowCard", true);
+
   renderPendingCard();
   if (d.reference && d.reference.pending && d.reference.pending.length) show("pendingCard", true);
 
@@ -6486,6 +6904,13 @@ function renderResult(d, r){
   const hrv = d.alignment ? d.alignment.coverage : null;
   scorePush((APP.ref && APP.ref.label) || "诊断", scv, hrv !== null && hrv !== undefined ? hrv * 100 : null);
   scoreTrendDraw();
+
+  /* D2/D9 按钮绑定（一次性） */
+  const bShare = $("btnShareSession");
+  if (bShare && !bShare.dataset.bound){ bShare.dataset.bound = "1"; bShare.addEventListener("click", shareSession); }
+  const bSave = $("btnSaveReport");
+  if (bSave && !bSave.dataset.bound){ bSave.dataset.bound = "1"; bSave.addEventListener("click", saveReportHtml); }
+  show("exportCard", true);
 }
 
 /* ---------- G6. 轨迹图 ---------- */
@@ -7291,6 +7716,29 @@ init();
       "<div style=\"margin-top:5px\">" + dynTxt + "</div>" +
       "<div style=\"margin-top:8px;color:#8a8378;font-size:12px\">参考：" + esc(APP.ref.label) + "　演奏：" + esc(APP.audioLabel || "录音/文件") + "</div>";
     $("sCheckinMsg").textContent = "";
+    /* D1/D2/D5 简易版增强渲染 */
+    try {
+      const st1 = sessionStatsOf(d);
+      const se = $("sSessionBody");
+      if (se){
+        se.innerHTML = "练习约 " + st1.minutes + " 分钟，" + st1.total + " 个音<br>" +
+          "音准命中率 <b>" + fmtNum(st1.hit_rate, 1) + "%</b>（错音 " + st1.wrong + " 处、漏音/未检出 " + st1.missing + " 处）<br>" +
+          "最不稳的音：" + (st1.worst ? esc(st1.worst.name) + "（偏差 " + fmtNum(st1.worst.cents, 1) + " 音分）" : "无");
+      }
+      const tt = tendencyRecord(d);
+      const stEl = $("sTendencyBody");
+      if (stEl) stEl.innerHTML = tendencyCardHtml(tt);
+      const tp = tomorrowPlanBuild(d);
+      const tmEl = $("sTomorrowBody");
+      if (tmEl){
+        tmEl.innerHTML = esc(tp.note) + "<br>建议练习：" + tp.steps.map(function(s){ return esc(s.label); }).join(" → ");
+        if (tp.focus_midi){
+          tmEl.innerHTML += '<br><button class="ghost mini" id="sBtnApplyTmr">载入明日练习包</button>';
+          const bA = $("sBtnApplyTmr");
+          if (bA) bA.addEventListener("click", function(){ tomorrowApply(tp); });
+        }
+      }
+    } catch (e){}
     try {
       if (localStorage.getItem("yinzhen_auto_speak") === "1" && ("speechSynthesis" in window)){
         setTimeout(speakSimpleResult, 500);
@@ -7461,6 +7909,17 @@ init();
         for (let i = 0; i < notes.length; i++){
           const d = Math.abs(notes[i].midi - curMidi);
           if (d < bd){ bd = d; target = notes[i]; }
+        }
+        /* D3 八度范围锁：目标音练习时，超出 ±1 八度按偏离提示并锁定，不显示离谱音分 */
+        if (target && APP.ref && APP.ref.meta && APP.ref.meta.kind === "single" && Math.abs(curMidi - target.midi) > 12){
+          const hint = rangeLockHint(target.midi, curMidi, refA);
+          const spL = $("sPointer"), noteL = $("sPointerNote");
+          if (spL && noteL){
+            noteL.innerHTML = "目标 <b>" + esc(midiToName(target.midi)) + "</b>　当前 <b>" + esc(midiToName(curMidi)) + "</b>　—（隔了八度）";
+            spL.classList.remove("ok", "warn"); spL.classList.add("bad");
+          }
+          setSimpleStatus(hint, "err");
+          return;
         }
         let cents = 0;
         if (target){
@@ -7642,6 +8101,12 @@ init();
         spd.querySelectorAll(".spd-btn").forEach(function(x){ x.classList.remove("active"); });
         b.classList.add("active");
         cur = Number(b.getAttribute("data-spd")) || 1;
+        /* D6 变速联动：节拍器开启时按倍速缩放 BPM（基准 90） */
+        if (METRO.on){
+          METRO.bpm = Math.max(40, Math.min(220, Math.round(90 * cur)));
+          const mv = $("metroBpm"); if (mv) mv.value = String(METRO.bpm);
+          const vl = $("metroBpmVal"); if (vl) vl.textContent = String(METRO.bpm);
+        }
       });
       const listenBtn = $("sBtnListen");
       if (listenBtn){
@@ -7705,9 +8170,23 @@ init();
       setSimpleStatus("好的，只在您点「播报结果」时朗读", "ok");
     });
     $("sBtnCheckin").addEventListener("click", simpleCheckin);
+    /* D2/D9 简易版按钮绑定 */
+    const bShareS = $("sBtnShare");
+    if (bShareS) bShareS.addEventListener("click", function(){
+      const d = window.LAST_SIMPLE_RESULT || APP.result;
+      if (!d){ setSimpleStatus("还没有诊断结果，先完成一次诊断", "err"); return; }
+      try {
+        copyTextToClipboard(sessionShareTextOf(sessionStatsOf(d)));
+        setSimpleStatus("练习小结已复制，可粘贴到微信发给朋友", "ok");
+      } catch (e){ setSimpleStatus("自动复制失败，可在完整版里手动复制", "err"); }
+    });
+    const bReportS = $("sBtnReport");
+    if (bReportS) bReportS.addEventListener("click", saveReportHtml);
     $("sBtnMore").addEventListener("click", function(){ switchUI("full"); switchMode("piece"); });
     $("sBtnMore2").addEventListener("click", function(){ switchUI("full"); });
     $("btnGoSimple").addEventListener("click", function(){ switchUI("simple"); });
+    /* D6 节拍器初始化（完整版参考栏控件） */
+    metroInit();
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initSimple);
   else initSimple();
