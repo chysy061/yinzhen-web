@@ -3309,12 +3309,28 @@ function notesToJianpu(notes, opts){
     prevEnd = start + length;
   });
 
+  /* 三连音检测：连续 3 个音符事件，每音时值 ≈ 1/3 拍且起点等距 ≈ 1/3 拍 */
+  const T3 = 1.0 / 3.0;
+  let tripletGroups = 0;
+  for (let i = 0; i + 2 < events.length; i++){
+    const a = events[i], b = events[i + 1], c = events[i + 2];
+    if (a.kind !== "note" || b.kind !== "note" || c.kind !== "note") continue;
+    const d1 = b.start - a.start, d2 = c.start - b.start;
+    const near = v => Math.abs(v - T3) < 0.035;
+    if (!near(d1) || !near(d2)) continue;
+    if (!near(a.length) || !near(b.length) || !near(c.length)) continue;
+    a._triplet = b._triplet = c._triplet = true;
+    tripletGroups += 1;
+    i += 2;
+  }
+
   const snap = { n_snapped:0, max_delta:0.0 };
-  function marks(subBeats){
+  function marks(subBeats, ev){
+    if (ev && ev._triplet && Math.abs(subBeats - T3) < 0.02) return "_";  /* 三连音：三个八分 + 弧线（文本以八分近似） */
     try {
       return jianpuTimeMarks(subBeats);
     } catch (e){
-      if (!opts.looseTime) throw e;               /* 默认严格：不静默降级 */
+      if (!opts.looseTime) throw e;
       const rr = jianpuTimeMarksLoose(subBeats);
       snap.n_snapped += 1;
       snap.max_delta = Math.max(snap.max_delta, rr.delta);
@@ -3333,24 +3349,42 @@ function notesToJianpu(notes, opts){
       const subEnd = Math.min(end, barEnd);
       const sub = subEnd - ptr;
       if (ev.kind === "rest"){
-        tokens.push("0" + marks(sub));
+        tokens.push("0" + marks(sub, null));
       } else {
-        const body = pitchToken(ev.midi) + marks(sub);
+        const body = pitchToken(ev.midi) + marks(sub, ev);
         tokens.push(first ? body : "~" + body);
       }
       first = false; ptr = subEnd;
       if (Math.abs(ptr - barEnd) < 1e-6){ tokens.push("|"); barNo += 1; }
     }
   });
-  if (tokens.length && tokens[tokens.length - 1] === "|") tokens.pop();  /* 末小节线与终止线合并 */
+  if (tokens.length && tokens[tokens.length - 1] === "|") tokens.pop();
   tokens.push("||");
 
+  /* 按小节排版：行内只含整数小节，小节线位于行尾 / 行首，换行与小节对齐 */
+  const bars = [];
+  let curBarToks = [];
+  tokens.forEach(function(tok){
+    curBarToks.push(tok);
+    if (tok === "|" || tok === "||"){ bars.push(curBarToks); curBarToks = []; }
+  });
+  if (curBarToks.length) bars.push(curBarToks);
   const lines = [];
   if (opts.includeHeader !== false){
     if (opts.title) lines.push("// " + opts.title);
     lines.push("1=" + keyName, timeSig, "T=" + tempoBpm, "八度=" + startOctave, "");
   }
-  for (let i = 0; i < tokens.length; i += 12) lines.push(tokens.slice(i, i + 12).join(" "));
+  if (tripletGroups) lines.push("// 含三连音（3 音等分 1 拍）：正文以三个八分音符近似表示，弧线标记见五线谱");
+  let rowToks = [];
+  const MAX_ROW_TOKS = 20;
+  bars.forEach(function(barToks){
+    if (rowToks.length && rowToks.length + barToks.length > MAX_ROW_TOKS){
+      lines.push(rowToks.join(" "));
+      rowToks = [];
+    }
+    rowToks = rowToks.concat(barToks);
+  });
+  if (rowToks.length) lines.push(rowToks.join(" "));
   if (opts.report){
     opts.report.n_snapped = snap.n_snapped;
     opts.report.max_delta = snap.max_delta;
@@ -3358,6 +3392,7 @@ function notesToJianpu(notes, opts){
   }
   return lines.join("\n");
 }
+
 
 /* ==================================================================
    PART E · DTW 乐谱对齐 + 时间规整 + 节奏统计（engine/align.py 同口径）
@@ -5607,22 +5642,70 @@ function staveRender(svg, notes, meta, keyName, tonicPc){
   const tempo = Number(meta.tempo_bpm || 90);
   const secPerBeat = 60.0 / tempo;
   const ks = staveKeySig(keyName);
+  const ksSet = {};
+  ks.forEach(function(k){ ksSet[k.step] = k.acc; });
   const scale = staveScalePc(tonicPc);
   const useFlat = String(keyName || "").indexOf("b") >= 0;
   const R = STAVE_RENDER, h = R.gap;
   const yTop = R.y0, yBot = yTop + 4 * h;
-  /* 行切分：每行至多一小节 */
-  const rows = [];
-  let cur = [], curBeats = 0;
+  const midY = (yTop + yBot) / 2;
+
+  /* ---------- 1. 预处理：时值换算（拍）---------- */
+  const evs = [];
   notes.forEach(function(n){
-    const dur = Math.max(0.25, n.dur_sec / secPerBeat);
-    if (cur.length && curBeats + dur > beatsPerMeasure + 1e-6){ rows.push(cur); cur = []; curBeats = 0; }
-    cur.push({ n: n, dur: dur }); curBeats += dur;
+    const isRest = !!(n.rest) || n.midi === null || n.midi === undefined;
+    const dur = Math.max(0.0625, Number(n.dur_sec) / secPerBeat);
+    const start = Math.max(0, Number(n.onset_sec) / secPerBeat);
+    evs.push({ midi: isRest ? null : Math.round(n.midi), start: start, dur: dur, rest: isRest, raw: n });
   });
-  if (cur.length) rows.push(cur);
-  /* 休止符辅助：四分/八分休止符简易 SVG 路径（无外部字体依赖） */
-  function staveRestPath(x, y, dur){
-    /* 休止符统一按四分休止符形状绘制；八分再补一个勾 */
+
+  /* ---------- 2. 跨小节长音拆段（tie 分段，保证小节线处时值连续）---------- */
+  const segs = [];
+  evs.forEach(function(ev){
+    let s = ev.start, e = ev.start + ev.dur;
+    let barIdx = Math.floor(s / beatsPerMeasure) + 1;
+    let firstSeg = true;
+    while (s < e - 1e-6){
+      const barEnd = barIdx * beatsPerMeasure;
+      const cut = Math.min(e, barEnd);
+      segs.push({ midi: ev.midi, start: s, end: cut, dur: cut - s, rest: ev.rest, raw: ev.raw,
+                  bar: barIdx, first: firstSeg, last: (cut >= e - 1e-6) });
+      firstSeg = false;
+      s = cut; barIdx += 1;
+    }
+  });
+  if (!segs.length) return null;
+
+  /* ---------- 3. 全曲统一谱号（首个非休止音符决定）---------- */
+  let firstMidi = null;
+  for (let i = 0; i < segs.length; i++){ if (!segs[i].rest){ firstMidi = segs[i].midi; break; } }
+  const clef = (firstMidi === null) ? "G" : staveClefFor(firstMidi);
+
+  /* ---------- 4. 行切分：整小节入行；每行拍数上限 maxRowBeats ---------- */
+  const maxRowBeats = Math.max(8, Math.min(16, Math.round(beatsPerMeasure * 4)));
+  const rows = [];
+  let cur = [], curBeats = 0, rowStartBar = 1;
+  segs.forEach(function(seg){
+    const isBarHead = Math.abs((seg.start / beatsPerMeasure) % 1) < 1e-6;
+    const overflow = cur.length && (curBeats + seg.dur) > maxRowBeats + 1e-6;
+    if (overflow && isBarHead){
+      rows.push({ segs: cur, beats: curBeats, barStart: rowStartBar });
+      cur = []; curBeats = 0; rowStartBar = seg.bar;
+    }
+    cur.push(seg); curBeats += seg.dur;
+  });
+  if (cur.length) rows.push({ segs: cur, beats: curBeats, barStart: rowStartBar });
+
+  /* ---------- 5. 辅助：休止符 SVG 路径（全/二分/四分/八分/十六分，无字体依赖） ---------- */
+  function staveRestGlyph(x, y, dur){
+    if (dur >= 4 - 1e-6){
+      /* 全休止：第 4 线下沿的粗横条 */
+      return '<path class="stave-rest" d="M ' + (x - 9) + ' ' + (y + 3) + ' h 18 v 3.4 h -18 Z" fill="#222" fill-opacity="0.85"/>';
+    }
+    if (dur >= 2 - 1e-6){
+      /* 二分休止：第 3 线上沿的粗横条 */
+      return '<path class="stave-rest" d="M ' + (x - 9) + ' ' + (y - 6) + ' h 18 v 3.4 h -18 Z" fill="#222" fill-opacity="0.85"/>';
+    }
     let p = 'M ' + (x - 4) + ' ' + (y - 6) +
             ' C ' + (x - 2) + ' ' + (y - 7) + ' ' + (x + 2) + ' ' + (y - 6) + ' ' + (x + 3) + ' ' + (y - 3) +
             ' C ' + (x + 4) + ' ' + (y) + ' ' + (x + 2) + ' ' + (y + 2) + ' ' + (x - 2) + ' ' + (y + 3) +
@@ -5631,28 +5714,54 @@ function staveRender(svg, notes, meta, keyName, tonicPc){
             ' C ' + (x + 5) + ' ' + (y + 7) + ' ' + (x + 4) + ' ' + (y + 5) + ' ' + (x + 1) + ' ' + (y + 4) +
             ' C ' + (x + 4) + ' ' + (y + 3) + ' ' + (x + 6) + ' ' + (y) + ' ' + (x + 4) + ' ' + (y - 3) +
             ' C ' + (x + 2) + ' ' + (y - 6) + ' ' + (x - 2) + ' ' + (y - 7) + ' ' + (x - 4) + ' ' + (y - 6) + ' Z';
-    if (dur <= 0.5){
+    if (dur >= 0.5 - 1e-6){
       p += ' M ' + (x - 3) + ' ' + (y + 9) + ' q -1 5 2 8 q -2 -1 -3 -3';
+    }
+    if (dur >= 0.25 - 1e-6 && dur < 0.5 - 1e-6){
+      p += ' M ' + (x - 3) + ' ' + (y + 9) + ' q -1 5 2 8 q -2 -1 -3 -3';
+      p += ' M ' + (x + 5) + ' ' + (y + 9) + ' q -1 5 2 8 q -2 -1 -3 -3';
     }
     return '<path class="stave-rest" d="' + p + '" fill="#222" fill-opacity="0.85"/>';
   }
+  function stavePcName(pc){ return useFlat ? STAVE_FLAT_NAMES[pc] : STAVE_PITCH_NAMES[pc]; }
+  function staveAccFor(pc, step, pcName){
+    if (ksSet[step] !== undefined){
+      /* 调号涵盖音级：升降音由调号给出；出现自然音需还原记号 */
+      return (pcName.length > 1) ? "" : "♮";
+    }
+    return (pcName.length > 1) ? pcName[1] : "";
+  }
+  function staveDotsOf(dur){
+    /* 返回附点数：dur 与 2^k*(2-2^-d) 匹配 */
+    for (let k = 0; k < 5; k++){
+      const base = 2.0 / Math.pow(2, k);
+      for (let d = 1; d <= 2; d++){
+        const v = (1.0 / Math.pow(2, k)) * (2.0 - Math.pow(2, -d));
+        if (Math.abs(dur - v) < 0.06) return d;
+      }
+      if (Math.abs(dur - base) < 0.06) return 0;
+    }
+    return 0;
+  }
+
+  /* ---------- 6. 逐行渲染 ---------- */
   const parts = [];
   rows.forEach(function(row, ri){
-    const yT = yTop + ri * (yBot - yTop + R.rowGap);
+    const yT = yTop + ri * (5 * h + R.rowGap);
     const yB = yT + 4 * h;
-    const clef = staveClefFor(row[0].n.midi);
+    const rowAbsStart = (row.barStart - 1) * beatsPerMeasure;
+    const rowMeasures = Math.max(1, Math.round(row.beats / beatsPerMeasure));
+    /* 谱号 + 拍号（仅首行）+ 调号（每行） */
     let x = R.x0;
-    /* 谱号 */
     parts.push('<text x="' + (x - 34) + '" y="' + (yT + (clef === "G" ? 31 : 38)) +
                '" class="stave-clef" font-size="' + (clef === "G" ? 34 : 38) + '">' +
                (clef === "G" ? "𝄞" : "𝄢") + "</text>");
+    if (ri === 0){
+      const num = String(timeSig).split("/")[0] || "4", den = String(timeSig).split("/")[1] || "4";
+      parts.push('<text x="' + (x - 27) + '" y="' + (yT + 14) + '" class="stave-time" font-size="14">' + num + "</text>");
+      parts.push('<text x="' + (x - 27) + '" y="' + (yB - 8) + '" class="stave-time" font-size="14">' + den + "</text>");
+    }
     x += R.timeX;
-    /* 拍号 */
-    const num = String(timeSig).split("/")[0] || "4", den = String(timeSig).split("/")[1] || "4";
-    parts.push('<text x="' + (x - 27) + '" y="' + (yT + 14) + '" class="stave-time" font-size="14">' + num + "</text>");
-    parts.push('<text x="' + (x - 27) + '" y="' + (yB - 8) + '" class="stave-time" font-size="14">' + den + "</text>");
-    x += R.ksX;
-    /* 调号 */
     ks.forEach(function(k){
       parts.push('<text x="' + (x - 23) + '" y="' + (yT + (4 - k.line / 2) * h + 16) +
                  '" class="stave-acc" font-size="18">' + (k.acc === "#" ? "♯" : "♭") + "</text>");
@@ -5660,40 +5769,63 @@ function staveRender(svg, notes, meta, keyName, tonicPc){
     });
     x += 12;
     const startX = x;
-    const laid = [];
-    let bx = startX, beatsIn = 0;
-    row.forEach(function(it){
-      const isRest = !!(it.n.rest) || it.n.midi === null || it.n.midi === undefined;
-      laid.push({ x: bx, dur: it.dur, midi: isRest ? null : Math.round(it.n.midi), rest: isRest });
-      bx += it.dur * R.beatX; beatsIn += it.dur;
-    });
-    const rowEnd = startX + beatsIn * R.beatX;
+    const rowEnd = startX + rowMeasures * beatsPerMeasure * R.beatX;
     const lineEnd = rowEnd + 46;
+    /* 五线 */
     for (let li = 0; li < 5; li++){
       parts.push('<line class="stave-line" x1="' + startX + '" y1="' + (yT + li * h) +
                  '" x2="' + lineEnd + '" y2="' + (yT + li * h) + '"/>');
     }
-    parts.push('<line class="stave-bar" x1="' + lineEnd + '" y1="' + yT + '" x2="' + lineEnd + '" y2="' + yB + '"/>');
-    laid.forEach(function(p){
+    /* 布局音符 */
+    const laid = row.segs.map(function(seg){
+      const bx = startX + (seg.start - rowAbsStart) * R.beatX;
+      return { x: bx, dur: seg.dur, midi: seg.midi, rest: seg.rest, first: seg.first, last: seg.last, bar: seg.bar };
+    });
+    /* 小节线：每个小节边界（除行首）画单线；行尾画终止双线 */
+    for (let b = 1; b <= rowMeasures; b++){
+      const bx2 = startX + b * beatsPerMeasure * R.beatX;
+      const lastBar = (b === rowMeasures && (ri === rows.length - 1));
+      if (lastBar){
+        parts.push('<line class="stave-bar" x1="' + (bx2 - 6) + '" y1="' + yT + '" x2="' + (bx2 - 6) + '" y2="' + yB + '"/>');
+        parts.push('<line class="stave-bar" x1="' + bx2 + '" y1="' + yT + '" x2="' + bx2 + '" y2="' + yB + '" stroke-width="3"/>');
+      } else {
+        parts.push('<line class="stave-bar" x1="' + bx2 + '" y1="' + yT + '" x2="' + bx2 + '" y2="' + yB + '"/>');
+      }
+    }
+    /* 行内连音线（tie）：相邻同音高（含跨小节段间） */
+    for (let i = 0; i < laid.length - 1; i++){
+      const a = laid[i], b = laid[i + 1];
+      if (a.rest || b.rest) continue;
+      if (a.midi !== b.midi) continue;
+      const pcNameA = stavePcName(stavePitchClass(a.midi));
+      const lineA = staveLinePos(pcNameA[0], Math.floor(a.midi / 12) - 1, clef);
+      const yA = yT + (4 - lineA / 2) * h;
+      const above = yA < midY;
+      const yArc = above ? yA - 13 : yA + 10;
+      const midArc = (a.x + b.x) / 2;
+      parts.push('<path class="stave-tie" d="M ' + a.x + ' ' + yArc + ' Q ' + midArc + ' ' + (yArc + (above ? -7 : 7)) +
+                 ' ' + b.x + ' ' + yArc + '" fill="none" stroke="#333" stroke-width="1.6"/>');
+    }
+    /* 音符 / 休止符 */
+    let prevMidi = null, prevBar = -1;
+    laid.forEach(function(p, pi){
       if (p.rest){
-        const yRest = yT + 4 * h - 6;   /* 休止符居中于五线 */
-        parts.push(staveRestPath(p.x, yRest, p.dur));
+        const yRest = yT + 4 * h - 6;
+        parts.push(staveRestGlyph(p.x, yRest, p.dur));
         return;
       }
       const midi = p.midi;
       const pc = stavePitchClass(midi);
       const octave = Math.floor(midi / 12) - 1;
-      const pcName = useFlat ? STAVE_FLAT_NAMES[pc] : STAVE_PITCH_NAMES[pc];
+      const pcName = stavePcName(pc);
       const step = pcName[0];
-      let acc = "";
-      if (scale.indexOf(pc) < 0) acc = (pcName.length > 1 ? pcName[1] : "");   /* 调内自然音由调号涵盖 */
       const line = staveLinePos(step, octave, clef);
       const y = yT + (4 - line / 2) * h;
-      const hollow = p.dur >= 2;                    /* 二分及以上空心 */
-      const mid = (yT + yB) / 2;
-      const up = y >= mid;
+      const up = y >= midY;
       const stemX = p.x + (up ? 6 : -6);
       const stemTop = y + (up ? -32 : 0), stemBot = y + (up ? 0 : 32);
+      const whole = p.dur >= 4 - 1e-6;
+      const half = p.dur >= 2 - 1e-6;
       /* 加线 */
       if (line < 0){
         for (let l2 = Math.floor(line / 2) * 2; l2 < 0; l2 += 2){
@@ -5706,41 +5838,45 @@ function staveRender(svg, notes, meta, keyName, tonicPc){
           parts.push('<line class="stave-ledger" x1="' + (p.x - 7) + '" y1="' + ly + '" x2="' + (p.x + 13) + '" y2="' + ly + '"/>');
         }
       }
-      if (acc) parts.push('<text x="' + (p.x - 9) + '" y="' + (y + 5) + '" class="stave-acc" font-size="14">' + acc + "</text>");
-      parts.push('<ellipse class="' + (hollow ? "stave-note hollow" : "stave-note") + '" cx="' + p.x + '" cy="' + y +
-                 '" rx="6" ry="4.6"/>');
-      if (!hollow){
+      /* 临时变音记号（同小节同音高不重复） */
+      let acc = "";
+      if (!(midi === prevMidi && p.bar === prevBar)){
+        acc = staveAccFor(pc, step, pcName);
+      }
+      if (acc){
+        parts.push('<text x="' + (p.x - 9) + '" y="' + (y + 5) + '" class="stave-acc" font-size="14">' + acc + "</text>");
+      }
+      prevMidi = midi; prevBar = p.bar;
+      /* 音符头：全音符空心无符杆；二分空心有符杆；其余实心有符杆 */
+      parts.push('<ellipse class="' + (half ? "stave-note hollow" : "stave-note") + '" cx="' + p.x + '" cy="' + y +
+                 '" rx="' + (whole ? 7 : 6) + '" ry="' + (whole ? 5.2 : 4.6) + '"/>');
+      if (!whole){
         parts.push('<line class="stave-stem" x1="' + stemX + '" y1="' + stemTop + '" x2="' + stemX + '" y2="' + stemBot + '"/>');
       }
-      if (p.dur <= 0.5){
+      if (p.dur <= 0.5 - 1e-6 && !whole){
         const tailY = up ? stemTop : stemBot;
-        parts.push('<path class="stave-stem" d="M ' + stemX + ' ' + tailY + ' q 6 ' + (up ? -9 : 9) + ' 15 ' + (up ? -2 : 2) + '"/>');
+        if (p.dur <= 0.25 - 1e-6){
+          parts.push('<path class="stave-stem" d="M ' + stemX + ' ' + tailY + ' q 6 ' + (up ? -9 : 9) + ' 15 ' + (up ? -2 : 2) +
+                     ' M ' + (stemX + 4) + ' ' + (tailY + (up ? -7 : 7)) + ' q 6 ' + (up ? -9 : 9) + ' 15 ' + (up ? -2 : 2) + '"/>');
+        } else {
+          parts.push('<path class="stave-stem" d="M ' + stemX + ' ' + tailY + ' q 6 ' + (up ? -9 : 9) + ' 15 ' + (up ? -2 : 2) + '"/>');
+        }
+      }
+      /* 附点 */
+      const nDots = staveDotsOf(p.dur);
+      for (let d = 0; d < nDots; d++){
+        parts.push('<circle class="stave-dot" cx="' + (p.x + 13 + d * 7) + '" cy="' + (y - 3) + '" r="2.2"/>');
       }
     });
-    /* B3-2 连音线：同音高相邻音符间画弧线（同小节跨小节均适用） */
-    for (let i = 0; i < laid.length - 1; i++){
-      const a = laid[i], b = laid[i + 1];
-      if (a.rest || b.rest) continue;
-      if (a.midi !== b.midi) continue;
-      const pcA = stavePitchClass(a.midi);
-      const pcNameA = useFlat ? STAVE_FLAT_NAMES[pcA] : STAVE_PITCH_NAMES[pcA];
-      const lineA = staveLinePos(pcNameA[0], Math.floor(a.midi / 12) - 1, clef);
-      const yA = yT + (4 - lineA / 2) * h;
-      const above = yA < (yT + yB) / 2;
-      const yArc = above ? yA - 13 : yA + 10;
-      const midArc = (a.x + b.x) / 2;
-      parts.push('<path class="stave-tie" d="M ' + a.x + ' ' + yArc + ' Q ' + midArc + ' ' + (yArc + (above ? -7 : 7)) +
-                 ' ' + b.x + ' ' + yArc + '" fill="none" stroke="#333" stroke-width="1.6"/>');
-    }
-    /* B3-3 三连音：同行内连续 3 个时值相等音符（容差 5%）标注 "3" */
+    /* 三连音：同行连续 3 个时值 ≈ 1/3 拍音符（容差） */
     for (let i = 0; i < laid.length - 2; i++){
       const a = laid[i], b = laid[i + 1], c = laid[i + 2];
       if (a.rest || b.rest || c.rest) continue;
       if (Math.abs(a.dur - b.dur) > 0.05 || Math.abs(b.dur - c.dur) > 0.05) continue;
-      if (a.dur < 0.28 || a.dur > 0.40) continue;   /* D4：三连音每音时值 ≈ 1/3 拍（原阈值误为 0.9-1.15） */
+      if (a.dur < 0.28 || a.dur > 0.40) continue;
       const topY = Math.min.apply(null, [a, b, c].map(function(p){
         const pc = stavePitchClass(p.midi);
-        const nm = useFlat ? STAVE_FLAT_NAMES[pc] : STAVE_PITCH_NAMES[pc];
+        const nm = stavePcName(pc);
         return yT + (4 - staveLinePos(nm[0], Math.floor(p.midi / 12) - 1, clef) / 2) * h;
       })) - 12;
       const x1 = a.x, x2 = c.x;
@@ -5748,18 +5884,26 @@ function staveRender(svg, notes, meta, keyName, tonicPc){
                  '" fill="none" stroke="#333" stroke-width="1.4"/>');
       parts.push('<text x="' + ((x1 + x2) / 2) + '" y="' + (topY - 6) + '" class="stave-tie" font-size="11" text-anchor="middle" fill="#333">3</text>');
     }
-    /* 行内小节线（含最后一小节：已画结束线，跳过行尾） */
-    for (let bb = beatsPerMeasure; bb < beatsIn - 1e-6; bb += beatsPerMeasure){
-      const bx2 = startX + bb * R.beatX;
-      parts.push('<line class="stave-bar" x1="' + bx2 + '" y1="' + yT + '" x2="' + bx2 + '" y2="' + yB + '"/>');
-    }
   });
-  svg.setAttribute("viewBox", "0 0 " + Math.max(720, (R.x0 + 120)) + " " + Math.max(120, rows.length * (5 * h + R.rowGap) + 20));
-  svg.setAttribute("height", Math.max(120, rows.length * (5 * h + R.rowGap) + 20));
+  const vw = Math.max(startXForView(rows, beatsPerMeasure, R, ks), 560);
+  const vh = rows.length * (5 * h + R.rowGap) + 20;
+  svg.setAttribute("viewBox", "0 0 " + vw + " " + vh);
+  svg.setAttribute("height", vh);
   svg.setAttribute("width", "100%");
+  svg.setAttribute("preserveAspectRatio", "xMinYMin meet");
   svg.innerHTML = parts.join("");
   return { rows: rows.length, notes: notes.length, parts: parts.length, keyName: keyName };
 }
+function startXForView(rows, beatsPerMeasure, R, ks){
+  let w = 0;
+  rows.forEach(function(row){
+    const measures = Math.max(1, Math.round(row.beats / beatsPerMeasure));
+    w = Math.max(w, R.x0 + R.timeX + ks.length * 8 + 12 + measures * beatsPerMeasure * R.beatX + 46);
+  });
+  return w;
+}
+
+
 /* C3 谱面导出 PNG：把 #extractStave 的 SVG 序列化为 dataURL 绘制到 canvas 后下载 */
 function exportStavePNG(){
   const svg = $("extractStave");
