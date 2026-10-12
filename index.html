@@ -428,6 +428,12 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
 .stave-tpnote{font-size:14px;color:var(--dim,#5F5F64);line-height:1.5}
 .stave-title{font-size:15px;font-weight:600;color:#1C1C1E;margin:10px 0 2px;padding-top:6px;border-top:1px solid var(--line,rgba(60,60,67,.12))}
 #extractSolfege{font-size:14px;color:#1C1C1E;line-height:1.6;background:#F7F8FA;border:1px solid var(--line,rgba(60,60,67,.12));border-radius:10px;padding:6px 10px;margin-top:2px;overflow-x:auto;white-space:nowrap}
+/* D10 节拍器第五模式 */
+.metro2-dots{display:flex;gap:8px;align-items:center}
+.metro2-dot{width:14px;height:14px;border-radius:50%;background:#D8D6CE;border:1px solid rgba(60,60,67,.18);transition:transform .06s, background .08s}
+.metro2-dot.active{background:#F2B8A0;transform:scale(1.25)}
+.metro2-dot.accent{background:#C0392B;transform:scale(1.35)}
+.metro2-tempo{font-size:13px;color:var(--dim,#5F5F64);min-width:7em}
 @media (prefers-color-scheme: dark){
   .stave-wrap{background:#fff}
 }
@@ -590,6 +596,7 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
       <button class="tab" id="tabPiece" role="tab" aria-selected="false" aria-controls="piecePanel">曲目练习<br><span>按歌谱练</span></button>
       <button class="tab" id="tabLib" role="tab" aria-selected="false" aria-controls="libPanel">曲库<br><span>自带歌曲选</span></button>
       <button class="tab" id="tabExtract" role="tab" aria-selected="false" aria-controls="extractPanel">拔带<br><span>从录音变谱</span></button>
+      <button class="tab" id="tabMetro" role="tab" aria-selected="false" aria-controls="metroPanel">节拍器<br><span>稳拍练节奏</span></button>
     </div>
 
     <!-- ---- 音阶模式 ---- -->
@@ -835,6 +842,49 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
       <div class="field" style="margin-top:8px">
         <label>简谱（提取结果，只读，可复制）</label>
         <textarea id="extractJianpu" class="scroll" style="width:100%;height:130px" readonly></textarea>
+      </div>
+    </div>
+
+    <!-- ---- 节拍器模式 ---- -->
+    <div id="metroPanel" class="hidden" style="margin-top:14px">
+      <div class="note">节拍器：<b>Web Audio 本地合成咔哒声</b>（无音频文件、无网络请求），采用 lookahead 调度（提前约 25ms 排队、按 audioContext.currentTime 精确落拍），长时间运行不累积漂移。适合长音、音阶、曲目分段与速度术语对照练习。</div>
+      <div class="row">
+        <div class="field">
+          <label>速度 BPM</label>
+          <div style="display:inline-flex;align-items:center;gap:6px">
+            <button type="button" class="ghost" id="metro2Minus" aria-label="速度减 1" title="长按连续减速" style="min-width:30px">−</button>
+            <input type="range" id="metro2Bpm" min="40" max="240" step="1" value="90" aria-label="节拍器速度" style="width:120px">
+            <button type="button" class="ghost" id="metro2Plus" aria-label="速度加 1" title="长按连续加速" style="min-width:30px">＋</button>
+            <span id="metro2BpmVal" style="min-width:3em;font-weight:700">90</span>
+            <span class="metro2-tempo" id="metro2TempoName">Andante（行板）</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>拍号</label>
+          <select id="metro2TimeSig" aria-label="拍号">
+            <option value="2/4">2/4</option>
+            <option value="3/4">3/4</option>
+            <option value="4/4" selected>4/4</option>
+            <option value="6/8">6/8</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>选项</label>
+          <label style="display:inline-flex;align-items:center;gap:4px"><input type="checkbox" id="metro2Accent" checked> 强弱重音</label>
+          <label style="display:inline-flex;align-items:center;gap:4px;margin-left:10px"><input type="checkbox" id="metro2Subdiv"> 8分音符细分</label>
+        </div>
+        <div class="field">
+          <label>音量</label>
+          <input type="range" id="metro2Vol" min="0" max="100" step="1" value="60" aria-label="节拍器音量" style="width:100px">
+        </div>
+      </div>
+      <div class="row" style="align-items:center;gap:12px">
+        <button type="button" class="primary" id="metro2Toggle" aria-label="开始或停止节拍器" style="min-width:120px">开始</button>
+        <div id="metro2BeatDots" class="metro2-dots" aria-label="节拍指示"></div>
+      </div>
+      <div class="field" style="margin-top:8px">
+        <label>拍内进度</label>
+        <div style="width:100%;height:10px;background:#e8e6df;border-radius:5px;overflow:hidden"><div id="metro2ProgFill" style="width:0%;height:100%;background:#c26b2c"></div></div>
       </div>
     </div>
 
@@ -7138,6 +7188,210 @@ function metroInit(){
     });
   }
 }
+/* D10 节拍器第五模式：专业节拍器（lookahead 调度 + 拍号重音 + 细分 + 可视化） */
+const TEMPO_NAMES = [
+  {lo: 40,  hi: 59,  zh: "Largo（广板）"},
+  {lo: 60,  hi: 65,  zh: "Larghetto（小广板）"},
+  {lo: 66,  hi: 75,  zh: "Adagio（柔板）"},
+  {lo: 76,  hi: 107, zh: "Andante（行板）"},
+  {lo: 108, hi: 119, zh: "Moderato（中板）"},
+  {lo: 120, hi: 167, zh: "Allegro（快板）"},
+  {lo: 168, hi: 199, zh: "Presto（急板）"},
+  {lo: 200, hi: 240, zh: "Prestissimo（最急板）"}
+];
+const METRO2 = {
+  on: false, bpm: 90, vol: 0.6, accent: true, subdiv: false,
+  num: 4, den: 4, ctx: null, timer: null, raf: null, holdTimer: null,
+  lookaheadMs: 25, scheduleAhead: 0.12,
+  nextTime: 0, beatIdx: 0, queue: []
+};
+try { window.__METRO2 = METRO2; } catch (e){}
+function metro2TempoName(bpm){
+  for (let i = 0; i < TEMPO_NAMES.length; i++){
+    if (bpm >= TEMPO_NAMES[i].lo && bpm <= TEMPO_NAMES[i].hi) return TEMPO_NAMES[i].zh;
+  }
+  return "—";
+}
+function metro2BeatPattern(num){
+  if (num === 2) return [1.0, 0.5];
+  if (num === 3) return [1.0, 0.5, 0.5];
+  if (num === 4) return [1.0, 0.5, 0.75, 0.5];
+  if (num === 6) return [1.0, 0.45, 0.45, 0.7, 0.45, 0.45];
+  const a = [1.0];
+  for (let i = 1; i < num; i++) a.push(0.5);
+  return a;
+}
+function metro2FreqOf(strong, isSub){
+  if (isSub) return 659;
+  if (strong >= 0.95) return 1568;
+  if (strong >= 0.7) return 1174;
+  return 880;
+}
+function metro2Click(t, freq, vol){
+  const ctx = METRO2.ctx;
+  if (!ctx) return;
+  try {
+    const osc = ctx.createOscillator(), g = ctx.createGain();
+    osc.type = "square";
+    osc.frequency.setValueAtTime(freq, t);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.002);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.045);
+    osc.connect(g); g.connect(ctx.destination);
+    osc.start(t); osc.stop(t + 0.05);
+  } catch (e){}
+}
+function metro2Scheduler(){
+  const M = METRO2, ctx = M.ctx;
+  if (!M.on || !ctx) return;
+  while (M.nextTime < ctx.currentTime + M.scheduleAhead){
+    const t = M.nextTime;
+    const isSub = M.subdiv && (M.beatIdx % 2 === 1);
+    const barIdx = isSub ? Math.floor(M.beatIdx / 2) % M.num : M.beatIdx % M.num;
+    const pat = metro2BeatPattern(M.num);
+    const strong = isSub ? 0.3 : (M.accent ? pat[barIdx] : 0.6);
+    const freq = metro2FreqOf(strong, isSub);
+    metro2Click(t, freq, strong * M.vol);
+    M.queue.push({ t: t, beat: barIdx, strong: strong, sub: isSub });
+    M.beatIdx++;
+    M.nextTime += 60.0 / M.bpm / (M.subdiv ? 2 : 1);
+  }
+}
+function metro2Raf(){
+  const M = METRO2;
+  if (!M.on || !M.ctx) return;
+  const ctx = M.ctx, now = ctx.currentTime;
+  while (M.queue.length && M.queue[0].t <= now){
+    const ev = M.queue.shift();
+    metro2Flash(ev.beat, ev.strong, ev.sub);
+  }
+  const beatDur = 60.0 / M.bpm / (M.subdiv ? 2 : 1);
+  const phase = Math.max(0, Math.min(1, (now - (M.nextTime - beatDur)) / beatDur));
+  const fill = $("metro2ProgFill");
+  if (fill) fill.style.width = (phase * 100).toFixed(1) + "%";
+  M.raf = requestAnimationFrame(metro2Raf);
+}
+function metro2Flash(beat, strong, isSub){
+  const dots = document.querySelectorAll("#metro2BeatDots .metro2-dot");
+  dots.forEach(function(d, i){
+    const on = (i === beat);
+    d.classList.toggle("active", on);
+    d.classList.toggle("accent", on && !isSub && strong >= 0.7);
+  });
+}
+function metro2RenderDots(){
+  const wrap = $("metro2BeatDots");
+  if (!wrap) return;
+  wrap.innerHTML = "";
+  const n = METRO2.num;
+  for (let i = 0; i < n; i++){
+    const d = document.createElement("span");
+    d.className = "metro2-dot";
+    d.setAttribute("role", "img");
+    d.setAttribute("aria-label", "第" + (i + 1) + "拍");
+    wrap.appendChild(d);
+  }
+}
+function metro2Start(){
+  const M = METRO2;
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return;
+  if (!M.ctx) M.ctx = new AC();
+  if (M.ctx.state === "suspended"){ try { M.ctx.resume(); } catch (e){} }
+  M.on = true; M.beatIdx = 0; M.queue = [];
+  M.nextTime = M.ctx.currentTime + 0.06;
+  M.timer = setInterval(metro2Scheduler, M.lookaheadMs);
+  M.raf = requestAnimationFrame(metro2Raf);
+  metro2RenderDots();
+  const btn = $("metro2Toggle"); if (btn) btn.textContent = "停止";
+}
+function metro2Stop(){
+  const M = METRO2;
+  M.on = false;
+  if (M.timer){ clearInterval(M.timer); M.timer = null; }
+  if (M.raf){ cancelAnimationFrame(M.raf); M.raf = null; }
+  const btn = $("metro2Toggle"); if (btn) btn.textContent = "开始";
+  const fill = $("metro2ProgFill"); if (fill) fill.style.width = "0%";
+  metro2Flash(-1, 0, false);
+}
+function metro2Toggle(){
+  if (METRO2.on) metro2Stop(); else metro2Start();
+}
+function metro2SyncBpmUI(){
+  const M = METRO2;
+  const rng = $("metro2Bpm"), val = $("metro2BpmVal"), nm = $("metro2TempoName");
+  if (rng) rng.value = String(M.bpm);
+  if (val) val.textContent = String(M.bpm);
+  if (nm) nm.textContent = metro2TempoName(M.bpm);
+}
+function metro2Step(delta){
+  const M = METRO2;
+  M.bpm = Math.max(40, Math.min(240, M.bpm + delta));
+  metro2SyncBpmUI();
+  if (M.on) metro2ResetPhase();
+}
+function metro2HoldStart(delta){
+  metro2Step(delta);
+  const M = METRO2;
+  if (M.holdTimer) clearInterval(M.holdTimer);
+  M.holdTimer = setInterval(function(){ metro2Step(delta); }, 70);
+}
+function metro2HoldEnd(){
+  const M = METRO2;
+  if (M.holdTimer){ clearInterval(M.holdTimer); M.holdTimer = null; }
+}
+function metro2ResetPhase(){
+  const M = METRO2;
+  if (!M.on || !M.ctx) return;
+  M.beatIdx = 0; M.queue = [];
+  M.nextTime = M.ctx.currentTime + 0.06;
+}
+function metro2BindHold(el, delta){
+  if (!el) return;
+  el.addEventListener("mousedown", function(e){ e.preventDefault(); metro2HoldStart(delta); });
+  el.addEventListener("mouseup", metro2HoldEnd);
+  el.addEventListener("mouseleave", metro2HoldEnd);
+  el.addEventListener("touchstart", function(e){ e.preventDefault(); metro2HoldStart(delta); }, {passive:false});
+  el.addEventListener("touchend", metro2HoldEnd);
+  el.addEventListener("touchcancel", metro2HoldEnd);
+}
+function metro2Init(){
+  const M = METRO2;
+  const btn = $("metro2Toggle");
+  if (!btn) return;
+  btn.addEventListener("click", metro2Toggle);
+  metro2BindHold($("metro2Minus"), -1);
+  metro2BindHold($("metro2Plus"), 1);
+  const rng = $("metro2Bpm");
+  if (rng){
+    rng.addEventListener("input", function(){
+      M.bpm = Math.max(40, Math.min(240, Number(rng.value) || 90));
+      metro2SyncBpmUI();
+      if (M.on) metro2ResetPhase();
+    });
+  }
+  const ts = $("metro2TimeSig");
+  if (ts){
+    ts.addEventListener("change", function(){
+      const parts = String(ts.value || "4/4").split("/");
+      M.num = Math.max(1, Math.min(12, Number(parts[0]) || 4));
+      M.den = Math.max(1, Number(parts[1]) || 4);
+      metro2RenderDots();
+      if (M.on) metro2ResetPhase();
+    });
+  }
+  const acc = $("metro2Accent");
+  if (acc) acc.addEventListener("change", function(){ M.accent = acc.checked; });
+  const sd = $("metro2Subdiv");
+  if (sd) sd.addEventListener("change", function(){
+    M.subdiv = sd.checked;
+    if (M.on) metro2ResetPhase();
+  });
+  const vl = $("metro2Vol");
+  if (vl) vl.addEventListener("input", function(){ M.vol = (Number(vl.value) || 60) / 100; });
+  metro2SyncBpmUI();
+  metro2RenderDots();
+}
 /* D9 离线诊断报告：五线谱（若有）+ 逐音表 + 趋势图 合并为单页 HTML，零依赖可离线打开 */
 function reportHtmlOf(d){
   const st = sessionStatsOf(d);
@@ -7917,22 +8171,27 @@ function switchMode(mode){
   $("tabPiece").classList.toggle("active", mode === "piece");
   $("tabLib").classList.toggle("active", mode === "lib");
   if ($("tabExtract")) $("tabExtract").classList.toggle("active", mode === "extract");
+  if ($("tabMetro")) $("tabMetro").classList.toggle("active", mode === "metro");
   $("tabScale").setAttribute("aria-selected", mode === "scale" ? "true" : "false");
   $("tabPiece").setAttribute("aria-selected", mode === "piece" ? "true" : "false");
   $("tabLib").setAttribute("aria-selected", mode === "lib" ? "true" : "false");
   if ($("tabExtract")) $("tabExtract").setAttribute("aria-selected", mode === "extract" ? "true" : "false");
+  if ($("tabMetro")) $("tabMetro").setAttribute("aria-selected", mode === "metro" ? "true" : "false");
   show("scalePanel", mode === "scale");
   show("piecePanel", mode === "piece");
   show("libPanel", mode === "lib");
   show("libCheckinCard", mode === "lib");
   show("extractPanel", mode === "extract");
+  show("metroPanel", mode === "metro");
   setStatus(mode === "scale"
     ? "音阶模式：选择机构 / 级别 / 调性后点「生成参考序列」。"
     : (mode === "piece"
        ? "曲目模式：导入你自持授权的 MusicXML / MIDI / 文本简谱作为参考谱，再点「解析乐谱」。"
        : (mode === "extract"
           ? "拔带模式：导入你自己持有的清唱 / 单声部独奏录音，提取参考级简谱 / MusicXML / MIDI（不做音源分离、不做复音提取）。"
-          : "曲库模式：检索 235 首业余/考级曲目元数据；公版种子可一键载入参考序列。")));
+          : (mode === "metro"
+             ? "节拍器模式：本地 Web Audio 合成咔哒声，BPM / 拍号 / 强弱重音 / 细分可调，lookahead 调度保证精准不漂移。"
+             : "曲库模式：检索 235 首业余/考级曲目元数据；公版种子可一键载入参考序列。"))));
 }
 
 function init(){
@@ -7945,9 +8204,10 @@ function init(){
   $("tabScale").addEventListener("click", function(){ switchMode("scale"); });
   $("tabPiece").addEventListener("click", function(){ switchMode("piece"); });
   if ($("tabExtract")) $("tabExtract").addEventListener("click", function(){ switchMode("extract"); });
+  if ($("tabMetro")) $("tabMetro").addEventListener("click", function(){ switchMode("metro"); });
   /* P1-1 键盘方向键导航：完整版模式 tab */
   (function(){
-    const modes = ["scale", "piece", "lib", "extract"];
+    const modes = ["scale", "piece", "lib", "extract", "metro"];
     const tabs = modes.map(function(m){ return document.getElementById("tab" + m.charAt(0).toUpperCase() + m.slice(1)); })
                      .filter(function(el){ return !!el; });
     const wrap = document.querySelector(".tabs.mode-big");
@@ -7978,6 +8238,7 @@ function init(){
     });
   })();
   extractInit();
+  metro2Init();
   $("instSel").addEventListener("change", function(){ renderInstitutionNote(); renderLevels(); });
   $("lvlSel").addEventListener("change", function(){ renderKeysAndItems(); });
   $("btnGenScale").addEventListener("click", genScaleRef);
