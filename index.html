@@ -5564,6 +5564,213 @@ function extractMarkTriplets(notes, secPerBeat){
   return notes;
 }
 
+/* ================= 拔带 v0.10：带伴奏主导旋律增强链路 =================
+   红线内（单文件零依赖、运行期 0 网络请求、无 ML 音源分离）为带伴奏歌曲
+   提升主导旋律提取鲁棒性：
+   1) 人声频段聚焦：8 阶带通（默认 160–1000Hz）压制低频贝斯/鼓与高频器乐；
+   2) HPS 谐波求和基频增强：对频谱做 1–8 次谐波能量求和，突出周期性声源；
+   3) top-K Viterbi 轨迹平滑：以连续性先验（帧间半音距离平方代价）在候选
+      f0 网格上求最平滑路径，抑制伴奏和声造成的跳变抖动；
+   4) 中值滤波去抖 + 能量门限剔除静音/非旋律段；
+   5) 可靠性度量：有效帧率 / 音符密度 / 大幅跳变占比 → 输出边界提示而非乱谱。
+   不破坏 analyzePitch / segmentNotes 等核心函数：增强链路仅替代帧检测入口，
+   下游切分/量化/净化/渲染管线完全复用。 */
+
+function biquadHighpass(x, sr, fc){
+  const w0 = 2 * Math.PI * fc / sr, cw = Math.cos(w0), sw = Math.sin(w0);
+  const alpha = sw / Math.SQRT2;
+  const b0 = (1 + cw) / 2, b1 = -(1 + cw), b2 = (1 + cw) / 2;
+  const a0 = 1 + alpha, a1 = -2 * cw, a2 = 1 - alpha;
+  const nb0 = b0 / a0, nb1 = b1 / a0, nb2 = b2 / a0, na1 = a1 / a0, na2 = a2 / a0;
+  const y = new Float32Array(x.length);
+  let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+  for (let i = 0; i < x.length; i++){
+    const v = nb0 * x[i] + nb1 * x1 + nb2 * x2 - na1 * y1 - na2 * y2;
+    x2 = x1; x1 = x[i]; y2 = y1; y1 = v; y[i] = v;
+  }
+  return y;
+}
+
+function extractBandpassFocused(x, sr, lo, hi, order){
+  const o = order || 8, half = Math.max(1, Math.floor(o / 2));
+  let y = x;
+  for (let i = 0; i < half; i++) y = biquadHighpass(y, sr, lo);
+  for (let i = 0; i < half; i++) y = biquadLowpass(y, sr, hi);
+  return y;
+}
+
+function extractFftMag(x, n){
+  const logN = Math.round(Math.log2(n));
+  const re = new Float32Array(n), im = new Float32Array(n);
+  for (let i = 0; i < n; i++){
+    let j = 0, k = i;
+    for (let b = 0; b < logN; b++){ j = (j << 1) | (k & 1); k >>= 1; }
+    re[j] = x[i];
+  }
+  for (let len = 2; len <= n; len <<= 1){
+    const ang = -2 * Math.PI / len;
+    const wr = Math.cos(ang), wi = Math.sin(ang);
+    for (let i = 0; i < n; i += len){
+      let cr = 1, ci = 0;
+      for (let k = 0; k < len / 2; k++){
+        const ur = re[i + k], ui = im[i + k];
+        const vr = re[i + k + len / 2] * cr - im[i + k + len / 2] * ci;
+        const vi = re[i + k + len / 2] * ci + im[i + k + len / 2] * cr;
+        re[i + k] = ur + vr; im[i + k] = ui + vi;
+        re[i + k + len / 2] = ur - vr; im[i + k + len / 2] = ui - vi;
+        const ncr = cr * wr - ci * wi, nci = cr * wi + ci * wr;
+        cr = ncr; ci = nci;
+      }
+    }
+  }
+  const mag = new Float32Array(n / 2 + 1);
+  for (let i = 0; i <= n / 2; i++) mag[i] = Math.sqrt(re[i] * re[i] + im[i] * im[i]);
+  return mag;
+}
+
+function extractMelodyFramesV2(data, sr, inst, onProgress){
+  const W = 1024, hop = 320, nh = 8;
+  const bandLo = 160, bandHi = 1000, f0Lo = 130, f0Hi = 900, nCand = 200, K = 32;
+  const x = extractBandpassFocused(data, sr, bandLo, bandHi, 8);
+
+  const cands = new Float32Array(nCand);
+  for (let i = 0; i < nCand; i++) cands[i] = f0Lo * Math.pow(f0Hi / f0Lo, i / (nCand - 1));
+  const midisC = new Float32Array(nCand);
+  for (let i = 0; i < nCand; i++) midisC[i] = 69 + 12 * Math.log(cands[i] / 440.0) / Math.LN2;
+  const stepBin = sr / W;
+  const binIdx = new Int32Array(nh * nCand);
+  for (let h = 1; h <= nh; h++){
+    for (let c = 0; c < nCand; c++){
+      const fh = cands[c] * h;
+      binIdx[(h - 1) * nCand + c] = (fh > sr / 2) ? -1 : Math.round(fh / stepBin);
+    }
+  }
+
+  const maxFrame = Math.floor((x.length - W) / hop);
+  const obsTop = new Int32Array(maxFrame * K);
+  const obsVal = new Float32Array(maxFrame * K);
+  const rmsArr = new Float32Array(maxFrame);
+  const win = new Float32Array(W);
+  for (let i = 0; i < W; i++) win[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / W);
+
+  let gs = 0;
+  for (let i = 0; i < x.length; i++) gs += x[i] * x[i];
+  const gRms = Math.sqrt(gs / Math.max(1, x.length));
+  const rmsThr = Math.max(1e-3, gRms * 0.15);
+
+  for (let f = 0; f < maxFrame; f++){
+    const st = f * hop;
+    let s = 0;
+    for (let j = 0; j < W; j++){ s += x[st + j] * x[st + j]; }
+    const rms = Math.sqrt(s / W);
+    rmsArr[f] = rms;
+    const seg = new Float32Array(W);
+    for (let j = 0; j < W; j++) seg[j] = x[st + j] * win[j];
+    const mag = extractFftMag(seg, W);
+    const scores = new Float32Array(nCand);
+    for (let c = 0; c < nCand; c++){
+      let acc = 0;
+      for (let h = 1; h <= nh; h++){
+        const bi = binIdx[(h - 1) * nCand + c];
+        if (bi >= 0 && bi < mag.length) acc += mag[bi];
+      }
+      scores[c] = acc + 1e-10;
+    }
+    const idx = new Array(nCand);
+    for (let c = 0; c < nCand; c++) idx[c] = c;
+    idx.sort((a, b) => scores[b] - scores[a]);
+    for (let k = 0; k < K; k++){
+      obsTop[f * K + k] = idx[k];
+      obsVal[f * K + k] = scores[idx[k]];
+    }
+    if (onProgress && (f & 255) === 0) onProgress(f / Math.max(1, maxFrame));
+  }
+
+  /* top-K Viterbi：连续性先验，转移代价 = lambda * Δ半音² */
+  const bandw = (m) => (m >= 52 && m <= 72) ? 1.0 : (m >= 48 && m < 52) ? 0.55 : 0.25;
+  const lam = 0.35, TC = 20;
+  const DP = new Float64Array(maxFrame * K);
+  const BK = new Int32Array(maxFrame * K);
+  for (let c = 0; c < K; c++){
+    const m = midisC[obsTop[c]];
+    DP[c] = obsVal[c] * bandw(m);
+  }
+  for (let f = 1; f < maxFrame; f++){
+    const base = f * K, pbase = (f - 1) * K;
+    const tcn = Math.min(K, TC);
+    for (let c = 0; c < K; c++){
+      const cm = midisC[obsTop[base + c]];
+      let best = -1e18, bi = 0;
+      for (let c2 = 0; c2 < tcn; c2++){
+        const dm = midisC[obsTop[pbase + c2]] - cm;
+        const v = DP[pbase + c2] - lam * dm * dm;
+        if (v > best){ best = v; bi = c2; }
+      }
+      DP[base + c] = obsVal[base + c] * bandw(cm) + best;
+      BK[base + c] = bi;
+    }
+  }
+  let last = 0, bestV = -1e18;
+  for (let c = 0; c < K; c++){
+    if (DP[(maxFrame - 1) * K + c] > bestV){ bestV = DP[(maxFrame - 1) * K + c]; last = c; }
+  }
+  const path = new Int32Array(maxFrame);
+  path[maxFrame - 1] = last;
+  for (let f = maxFrame - 1; f > 0; f--) path[f - 1] = BK[f * K + path[f]];
+
+  const f0Raw = new Float32Array(maxFrame);
+  for (let f = 0; f < maxFrame; f++) f0Raw[f] = cands[obsTop[f * K + path[f]]];
+
+  /* 中值滤波去抖（size=7） */
+  const f0Smooth = new Float32Array(maxFrame);
+  for (let f = 0; f < maxFrame; f++){
+    const lo = Math.max(0, f - 3), hi = Math.min(maxFrame, f + 4);
+    const arr = [];
+    for (let j = lo; j < hi; j++) arr.push(f0Raw[j]);
+    arr.sort((a, b) => a - b);
+    f0Smooth[f] = arr[Math.floor(arr.length / 2)];
+  }
+
+  const frames = new Array(maxFrame);
+  for (let f = 0; f < maxFrame; f++){
+    const rms = rmsArr[f];
+    frames[f] = (rms > rmsThr && f0Smooth[f] >= f0Lo && f0Smooth[f] <= f0Hi)
+      ? { t: f * hop / sr, f0: f0Smooth[f], rms: rms }
+      : { t: f * hop / sr, f0: -1, rms: rms };
+  }
+  return frames;
+}
+
+/* 可靠性度量：有效帧率、音符密度、大幅跳变占比、音域合理性。
+   返回 {reliable, score, reason}；reliable=false 时调用方应输出诚实边界提示。 */
+function extractMelodyQuality(notes, frames){
+  if (!notes || !notes.length) return { reliable: false, score: 0, reason: "无音符" };
+  let active = 0;
+  for (let i = 0; i < frames.length; i++) if (frames[i].f0 > 0) active++;
+  const activeRatio = active / Math.max(1, frames.length);
+  const midis = notes.map(n => n.midi);
+  let jump7 = 0, jumps = 0;
+  for (let i = 1; i < midis.length; i++){
+    jumps++;
+    if (Math.abs(midis[i] - midis[i - 1]) > 7) jump7++;
+  }
+  const jump7Ratio = jumps ? jump7 / jumps : 0;
+  const durs = notes.map(n => n.dur).sort((a, b) => a - b);
+  const durMed = durs[Math.floor(durs.length / 2)];
+  const lo = Math.min.apply(null, midis), hi = Math.max.apply(null, midis);
+  const range = hi - lo;
+  let score = 100;
+  const reasons = [];
+  if (notes.length < 16){ score -= 40; reasons.push("音符过少(" + notes.length + ")"); }
+  if (activeRatio < 0.4){ score -= 25; reasons.push("有效帧率低(" + (activeRatio * 100).toFixed(0) + "%)"); }
+  if (jump7Ratio > 0.22){ score -= 25; reasons.push("大幅跳变占比高(" + (jump7Ratio * 100).toFixed(0) + "%)"); }
+  if (durMed < 0.12){ score -= 15; reasons.push("音符过碎(中位时值 " + durMed.toFixed(2) + "s)"); }
+  if (range < 4){ score -= 10; reasons.push("音域过窄(" + (range) + " 半音)"); }
+  const reliable = score >= 55 && reasons.length <= 2;
+  return { reliable: reliable, score: Math.max(0, Math.min(100, score)),
+           reason: reasons.length ? reasons.join("，") : "轮廓稳定" };
+}
+
 function extractMelodyFromAudio(audio, opts){
   opts = opts || {};
   if (!audio || !audio.data || !audio.data.length) throw new Error("没有可分析的音频，请先选择音频文件");
@@ -5573,18 +5780,32 @@ function extractMelodyFromAudio(audio, opts){
   const inst = opts.instrument || "vocal";
   if (!INSTRUMENTS[inst]) throw new Error("未知声源类型：" + inst);
   const tempoHint = (Number(opts.tempo_bpm) > 0 ? Number(opts.tempo_bpm) : null);
+  const gridPerBeat = (Number(opts.grid_per_beat) > 0 ? Number(opts.grid_per_beat) : EXTRACT_GRID_PER_BEAT);
   const timeSigRaw = String(opts.time_sig || "4/4");
   let timeSig = timeSigRaw;
-  let beatsPerMeasure = jianpuBeatsPerMeasure(timeSig);
+  /* auto 拍号在函数内推导，初始先按 4/4 占位，避免 jianpuBeatsPerMeasure("auto") 抛错 */
+  let beatsPerMeasure = jianpuBeatsPerMeasure(timeSigRaw === "auto" ? "4/4" : timeSigRaw);
   let autoTimeSig = false;
 
   const targetSr = targetSrFor(inst);
   const ds = downsample(srcData, srcSr, targetSr);
-  const frames = analyzePitch(ds.data, ds.sr, inst, null);
+  const useEnhanced = !!(opts.from_vocal_track || opts.melody_enhanced);
+  /* v0.10：带伴奏（人声轨分离）走增强链路，单声部直通保持原 YIN 管线 */
+  const frames = useEnhanced ? extractMelodyFramesV2(ds.data, ds.sr, inst, null)
+                             : analyzePitch(ds.data, ds.sr, inst, null);
   const refA = Number((INSTRUMENTS[inst].base || 440));
-  const seg = segmentNotes(frames, refA, 25.0);
+  const segRaw = segmentNotes(frames, refA, 25.0);
+  /* 字段归一：segmentNotes 输出 t0/t1/dur，下游 quantize/clean 读取 onset_sec/dur_sec */
+  const seg = segRaw.map(function(n){
+    return { onset_sec: n.t0, dur_sec: n.t1 - n.t0, midi: n.midi, cents: n.cents,
+             dur: n.t1 - n.t0, t0: n.t0, t1: n.t1, name: n.name,
+             jitter: n.jitter, rms_avg: n.rms_avg, rms_peak: n.rms_peak,
+             rms_cv: n.rms_cv, severity: n.severity, unstable: n.unstable };
+  });
   if (!seg.length)
-    throw new Error("没有提取到任何音符：请确认音频是单声部清唱 / 独奏、音量足够、有效时长 ≥ 1 秒。若上传的是带伴奏歌曲（人声+伴奏混合），本版本不支持音源分离、无法生成主旋律谱；替代路径：① 先唱一遍并用主界面录音生成参考；② 在曲目模式上传乐谱 / 文本简谱；③ 使用曲库内置公版曲目。");
+    throw new Error(useEnhanced
+      ? "增强拔带未提取到可用的主导音符序列：此曲伴奏密度过高或目标频段能量过低，无法可靠生成旋律谱（红线内不做 ML 音源分离）。建议换用清唱录音生成参考，或直接上传已有乐谱 / 文本简谱。"
+      : "没有提取到任何音符：请确认音频是单声部清唱 / 独奏、音量足够、有效时长 ≥ 1 秒。若上传的是带伴奏歌曲（人声+伴奏混合），本版本不支持音源分离、无法生成主旋律谱；替代路径：① 先唱一遍并用主界面录音生成参考；② 在曲目模式上传乐谱 / 文本简谱；③ 使用曲库内置公版曲目。");
 
   const secPerBeat = extractEstimateBeatSec(seg, tempoHint);
   const tempoBpm = Number((60.0 / secPerBeat).toFixed(3));
@@ -5612,6 +5833,13 @@ function extractMelodyFromAudio(audio, opts){
   if (autoTimeSig) warnings.push("拍号为自动推导（" + timeSig + "），如需修正可手动指定后重跑");
   if (!tempoHint) warnings.push("速度由音间间隔自动估计（" + tempoBpm + " BPM），结果对节拍解释敏感");
   if (keyInfo.score !== null && keyInfo.score < 0.75) warnings.push("调性自动判断置信度偏低，建议手动指定调性后重跑");
+  let melodyQuality = null;
+  if (useEnhanced){
+    melodyQuality = extractMelodyQuality(seg, frames);
+    if (melodyQuality && !melodyQuality.reliable){
+      warnings.push("增强拔带可靠性不足（" + melodyQuality.reason + "）：本曲为带伴奏混音，未做 ML 音源分离，输出为主导声部参考轮廓，请以听感为准");
+    }
+  }
   if (opts.from_vocal_track) warnings.push("基于人声轨分析：已用 mid/side 中置声道法分离（k=" +
     (isFinite(Number(opts.split_k)) ? Number(opts.split_k).toFixed(2) : "0.6") +
     "），残留伴奏可能带来少量杂音，谱面仅供参考");
@@ -5625,9 +5853,14 @@ function extractMelodyFromAudio(audio, opts){
   return {
     notes: notes,
     meta: {
-      source: "hum_extract（拔带 · " + (opts.from_vocal_track ? "基于人声轨分析（mid/side 中置声道分离）" : "单声部直通") + "：" + (opts.source_label || "录音") + "）",
-      source_kind: "extract", format: "hum-extract-v1", version: "v0.9",
+      source: "hum_extract（拔带 · " + (useEnhanced
+          ? "基于人声轨分析（mid/side 中置声道 + 人声频段聚焦 + HPS 谐波增强 + Viterbi 轨迹平滑）"
+          : "单声部直通") + "：" + (opts.source_label || "录音") + "）",
+      source_kind: "extract", format: "hum-extract-v1", version: "v0.10",
       from_vocal_track: !!opts.from_vocal_track,
+      melody_engine: useEnhanced ? "vocal-focus-hps-viterbi" : "yin",
+      melody_quality_score: melodyQuality ? melodyQuality.score : null,
+      melody_reliable: melodyQuality ? melodyQuality.reliable : null,
       instrument: inst, time_sig: timeSig, beats_per_measure: beatsPerMeasure,
       tempo_bpm: tempoBpm, tempo_estimated: (tempoHint === null),
       tonic_pc: keyInfo.tonic_pc, mode: keyInfo.mode, key_label: keyInfo.key_label,
@@ -5639,8 +5872,9 @@ function extractMelodyFromAudio(audio, opts){
       pitch_range: [midiToName(lo), midiToName(hi)],
       score_pitch: "sounding", transpose: 0,
       warnings: warnings,
-      boundary: opts.from_vocal_track
+      boundary: useEnhanced
         ? ["基于人声轨分析：分离结果为近似，残留伴奏可能引入少量杂音",
+           "增强链路为 DSP 主导声部估计（非 ML 音源分离）：密集混音时输出为主导声部参考轮廓，极端情况下（伴奏压过人声）结果可能偏向伴奏和声",
            "不做复音/和弦提取（密集和声仍无法成谱）",
            "提取结果为参考级，仅用于练习比对，不构成对任何作品的权利主张"]
         : ["仅支持单声部清唱 / 独奏（无和弦、无复音）",
