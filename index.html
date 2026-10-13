@@ -414,25 +414,32 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
 .tpose.active{background:var(--acc,#007AFF);color:#fff;border-color:var(--acc,#007AFF)}
 .stave-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;background:#fff;border:1px solid var(--line,rgba(60,60,67,.12));border-radius:12px;padding:10px 8px;margin:6px 0 4px}
 .stave-wrap svg{display:block;max-width:none}
-.stave-line{stroke:#1C1C1E;stroke-width:1}
-.stave-bar{stroke:#1C1C1E;stroke-width:1.4}
-.stave-ledger{stroke:#1C1C1E;stroke-width:1}
-.stave-clef{font-family:"Segoe UI Symbol","Noto Music","Bravura","Arial Unicode MS",serif;fill:#1C1C1E}
-.stave-acc{font-family:"Segoe UI Symbol","Noto Music","Arial Unicode MS",sans-serif;fill:#1C1C1E}
-.stave-note{fill:#1C1C1E;stroke:none}
-.stave-note.hollow{fill:#fff;stroke:#1C1C1E;stroke-width:1.2}
-.stave-stem{stroke:#1C1C1E;stroke-width:1.5}
-.stave-beam{fill:#1C1C1E}
-.stave-dot{fill:#1C1C1E}
-.stave-time{font-family:"Segoe UI Symbol",sans-serif;fill:#1C1C1E}
+.stave-line{stroke:#8E8E93;stroke-width:1}
+.stave-bar{stroke:#3A3A3C;stroke-width:1.4}
+.stave-ledger{stroke:#AEAEB2;stroke-width:1}
+.stave-clef{font-family:"Segoe UI Symbol","Noto Music","Bravura","Arial Unicode MS",serif;fill:#33343E}
+.stave-acc{font-family:"Segoe UI Symbol","Noto Music","Arial Unicode MS",sans-serif;fill:#33343E}
+.stave-note{fill:#1F2A44;stroke:none}
+.stave-note.lowconf{fill:#C7C7CC;stroke:none}
+.stave-note.hollow{fill:#fff;stroke:#1F2A44;stroke-width:1.3}
+.stave-note.hollow.lowconf{fill:#F2F2F7;stroke:#C7C7CC}
+.stave-stem{stroke:#1F2A44;stroke-width:1.5}
+.stave-beam{fill:#1F2A44}
+.stave-dot{fill:#1F2A44}
+.stave-time{font-family:"Segoe UI Symbol",sans-serif;fill:#33343E}
+.stave-chord{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-weight:700;fill:#B3541E}
+.stave-lowconf{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-weight:700;fill:#8E8E93}
 .stave-tpnote{font-size:14px;color:var(--dim,#5F5F64);line-height:1.5}
 .stave-title{font-size:15px;font-weight:600;color:#1C1C1E;margin:10px 0 2px;padding-top:6px;border-top:1px solid var(--line,rgba(60,60,67,.12))}
 #extractSolfege{font-size:14px;color:#1C1C1E;line-height:1.6;background:#F7F8FA;border:1px solid var(--line,rgba(60,60,67,.12));border-radius:10px;padding:6px 10px;margin-top:2px;overflow-x:auto;white-space:nowrap}
 /* D10 节拍器第五模式 */
 .metro2-dots{display:flex;gap:8px;align-items:center}
 .metro2-dot{width:14px;height:14px;border-radius:50%;background:#D8D6CE;border:1px solid rgba(60,60,67,.18);transition:transform .06s, background .08s}
+.metro2-dot.sub{width:10px;height:10px;background:#EFEDE8}
 .metro2-dot.active{background:#F2B8A0;transform:scale(1.25)}
+.metro2-dot.active.sub{background:#F2B8A0;transform:scale(1.3)}
 .metro2-dot.accent{background:#C0392B;transform:scale(1.35)}
+.metro2-bigbtn{min-width:46px;font-size:22px;font-weight:700;line-height:1.2;padding:6px 10px;border-radius:10px}
 .metro2-tempo{font-size:13px;color:var(--dim,#5F5F64);min-width:7em}
 @media (prefers-color-scheme: dark){
   .stave-wrap{background:#fff}
@@ -746,7 +753,8 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
         <div class="field">
           <label>声源</label>
           <select id="extractSource" aria-label="提取音源">
-            <option value="vocal" selected>人声（清唱 65–1050 Hz）</option>
+            <option value="auto" selected>自动检测（人声/乐器自适应）</option>
+            <option value="vocal">人声（清唱 65–1050 Hz）</option>
             <option value="sax">萨克斯（200–1000 Hz）</option>
             <option value="violin">小提琴（196–3136 Hz）</option>
             <option value="flute">长笛（261–4186 Hz）</option>
@@ -833,6 +841,7 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
           <button class="ghost mini tpose" id="tpSoprano" data-tp="soprano">高音萨克斯 Bb</button>
           <button class="ghost mini" id="btnStavePng" aria-label="导出五线谱为图片（PNG）">导出 PNG</button>
           <button class="ghost mini" id="btnStavePrint" aria-label="打印当前谱面与报告">打印</button>
+          <label style="display:inline-flex;align-items:center;gap:4px;margin-left:8px;font-size:13px"><input type="checkbox" id="extractChordsOn" checked> 和弦功能谱</label>
         </div>
         <div class="stave-tpnote" id="extractTpNote">原调 C 记谱（通用谱，任何乐器均可按此视奏）。</div>
         <div class="stave-title" id="extractStaveTitle">五线谱（拔带结果）</div>
@@ -848,13 +857,14 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
     <!-- ---- 节拍器模式 ---- -->
     <div id="metroPanel" class="hidden" style="margin-top:14px">
       <div class="note">节拍器：<b>Web Audio 本地合成咔哒声</b>（无音频文件、无网络请求），采用 lookahead 调度（提前约 25ms 排队、按 audioContext.currentTime 精确落拍），长时间运行不累积漂移。适合长音、音阶、曲目分段与速度术语对照练习。</div>
-      <div class="row">
+      <div class="row" style="flex-wrap:wrap">
         <div class="field">
           <label>速度 BPM</label>
-          <div style="display:inline-flex;align-items:center;gap:6px">
-            <button type="button" class="ghost" id="metro2Minus" aria-label="速度减 1" title="长按连续减速" style="min-width:30px">−</button>
-            <input type="range" id="metro2Bpm" min="40" max="240" step="1" value="90" aria-label="节拍器速度" style="width:120px">
-            <button type="button" class="ghost" id="metro2Plus" aria-label="速度加 1" title="长按连续加速" style="min-width:30px">＋</button>
+          <div style="display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <button type="button" class="ghost metro2-bigbtn" id="metro2Minus" aria-label="速度减 1" title="长按连续减速" style="min-width:46px;font-size:22px">−</button>
+            <input type="range" id="metro2Bpm" min="40" max="240" step="1" value="90" aria-label="节拍器速度" style="width:130px">
+            <button type="button" class="ghost metro2-bigbtn" id="metro2Plus" aria-label="速度加 1" title="长按连续加速" style="min-width:46px;font-size:22px">＋</button>
+            <input type="number" id="metro2BpmNum" min="40" max="240" step="1" value="90" aria-label="直接输入速度" style="width:68px;font-weight:700;font-size:18px">
             <span id="metro2BpmVal" style="min-width:3em;font-weight:700">90</span>
             <span class="metro2-tempo" id="metro2TempoName">Andante（行板）</span>
           </div>
@@ -869,13 +879,29 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
           </select>
         </div>
         <div class="field">
-          <label>选项</label>
-          <label style="display:inline-flex;align-items:center;gap:4px"><input type="checkbox" id="metro2Accent" checked> 强弱重音</label>
-          <label style="display:inline-flex;align-items:center;gap:4px;margin-left:10px"><input type="checkbox" id="metro2Subdiv"> 8分音符细分</label>
+          <label>节拍类型</label>
+          <select id="metro2Pattern" aria-label="节拍类型">
+            <option value="standard" selected>标准（第 1 拍强）</option>
+            <option value="march">进行曲（1、3 拍强）</option>
+            <option value="waltz">华尔兹（1 拍强）</option>
+            <option value="compound68">复合 6/8（1、4 拍强）</option>
+          </select>
         </div>
         <div class="field">
-          <label>音量</label>
-          <input type="range" id="metro2Vol" min="0" max="100" step="1" value="60" aria-label="节拍器音量" style="width:100px">
+          <label>细分</label>
+          <select id="metro2SubdivSel" aria-label="细分">
+            <option value="0" selected>无细分</option>
+            <option value="2">8 分音符</option>
+            <option value="4">16 分音符</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>选项</label>
+          <label style="display:inline-flex;align-items:center;gap:4px"><input type="checkbox" id="metro2Accent" checked> 强弱重音</label>
+        </div>
+        <div class="field">
+          <label>音量 <span id="metro2VolVal" class="kv">60%</span></label>
+          <input type="range" id="metro2Vol" min="0" max="100" step="1" value="60" aria-label="节拍器音量" style="width:110px">
         </div>
       </div>
       <div class="row" style="align-items:center;gap:12px">
@@ -5334,7 +5360,8 @@ function extractCleanNotes(notes, beatsPerMeasure, secPerBeat, gridPerBeat){
       m = out[out.length - 1].midi;
     }
     out.push({ onset_sec: Number(n.onset_sec), dur_sec: Number(n.dur_sec), midi: m,
-               measure: n.measure, beat: n.beat, cents: Number(n.cents || 0), name: midiToName(m) });
+               measure: n.measure, beat: n.beat, cents: Number(n.cents || 0), name: midiToName(m),
+               confidence: Number(n.confidence || 0) });
   });
   /* ② 包夹中位矫正：两侧同音夹住中间 1 半音短音 → 并到两侧（消除颤音抖动） */
   for (let i = 1; i < out.length - 1; i++){
@@ -5349,6 +5376,7 @@ function extractCleanNotes(notes, beatsPerMeasure, secPerBeat, gridPerBeat){
     const gap = b.onset_sec - (a.onset_sec + a.dur_sec);
     if (a.midi === b.midi && gap <= oneGrid + 1e-9 && b.dur_sec <= 2 * oneGrid + 1e-9){
       a.dur_sec = Number((b.onset_sec + b.dur_sec - a.onset_sec).toFixed(6));
+      a.confidence = Math.max(Number(a.confidence || 0), Number(b.confidence || 0));
       out.splice(i + 1, 1);
       stats.merged += 1;
     } else { i++; }
@@ -5393,6 +5421,7 @@ function extractCleanNotes(notes, beatsPerMeasure, secPerBeat, gridPerBeat){
                      midi: n.midi, measure: bar,
                      beat: Number((1 + ((s % bpm) + bpm) % bpm).toFixed(3)),
                      cents: n.cents, name: n.name,
+                     confidence: Number(n.confidence || 0),
                      _tie: !first, _tieStart: first });
         if (!first) stats.split += 1;
       }
@@ -5420,7 +5449,8 @@ function extractQuantize(notes, beatsPerMeasure, secPerBeat, gridPerBeat){
       measure: Math.floor(pb / beatsPerMeasure) + 1,
       beat: Number((1.0 + (pb % beatsPerMeasure)).toFixed(3)),
       cents: Number(Number(n.cents || 0).toFixed(2)),
-      name: midiToName(Math.round(n.midi))
+      name: midiToName(Math.round(n.midi)),
+      confidence: Number(n.confidence || 0)
     });
   });
   for (let i = 0; i < out.length - 1; i++){
@@ -5429,6 +5459,84 @@ function extractQuantize(notes, beatsPerMeasure, secPerBeat, gridPerBeat){
       out[i].dur_sec = Number(room.toFixed(6));
   }
   return out;
+}
+
+/* ============== 问题二：和弦功能谱 + 低可信标记 ==============
+   ① extractDeriveChords：按小节/拍滑窗对提取音符做音高类集合匹配，
+      推导三和弦 / 七和弦（支持大小调），输出 {measure, label, root_pc, quality, score}。
+   ② extractMarkLowConf：基于帧级 confidence 标记低可信音符（渲染时淡化、可旁注），
+      不删音符（谱面完整优先），由 quality 门与谱面样式共同兜底。 */
+const CHORD_TEMPLATES = [
+  { name: "maj",   pcs: [0,4,7],   kind: "三和弦" },
+  { name: "min",   pcs: [0,3,7],   kind: "三和弦" },
+  { name: "dim",   pcs: [0,3,6],   kind: "三和弦" },
+  { name: "aug",   pcs: [0,4,8],   kind: "三和弦" },
+  { name: "maj7",  pcs: [0,4,7,11],kind: "七和弦" },
+  { name: "min7",  pcs: [0,3,7,10],kind: "七和弦" },
+  { name: "dom7",  pcs: [0,4,7,10],kind: "七和弦" },
+  { name: "m7b5",  pcs: [0,3,6,10],kind: "七和弦" },
+  { name: "dim7",  pcs: [0,3,6,9], kind: "七和弦" }
+];
+const CHORD_QUALITY_LABEL = { maj:"", min:"m", dim:"°", aug:"+", maj7:"maj7", min7:"m7", dom7:"7", m7b5:"m7♭5", dim7:"dim7" };
+function extractDeriveChords(notes, beatsPerMeasure){
+  const out = [];
+  if (!notes || !notes.length) return out;
+  const bpm = Math.max(1, Number(beatsPerMeasure) || 4);
+  const byBar = {};
+  notes.forEach(function(n){
+    const bar = Number(n.measure) || 1;
+    if (!byBar[bar]) byBar[bar] = [];
+    byBar[bar].push(n);
+  });
+  const bars = Object.keys(byBar).map(Number).sort(function(a, b){ return a - b; });
+  bars.forEach(function(bar){
+    const ns = byBar[bar];
+    /* 滑窗：整小节一个候选；若小节音符 ≥8 个再按 1/2 小节拆两个候选 */
+    const windows = [ns];
+    if (ns.length >= 8){
+      const midBeat = bpm / 2;
+      const w1 = [], w2 = [];
+      ns.forEach(function(n){ (n.beat <= midBeat + 1e-6 ? w1 : w2).push(n); });
+      if (w1.length && w2.length) windows = [w1, w2];
+    }
+    windows.forEach(function(win, wi){
+      if (win.length < 2) return;
+      const pcSet = [];
+      const weight = {};
+      win.forEach(function(n){
+        const pc = ((Math.round(n.midi) % 12) + 12) % 12;
+        if (!weight[pc]){ weight[pc] = 0; pcSet.push(pc); }
+        weight[pc] += 1;
+      });
+      let best = null;
+      CHORD_TEMPLATES.forEach(function(tpl){
+        for (let root = 0; root < 12; root++){
+          let hit = 0, miss = 0;
+          tpl.pcs.forEach(function(iv){ if (weight[(root + iv) % 12]) hit += 1; else miss += 1; });
+          pcSet.forEach(function(pc){ if (tpl.pcs.indexOf(((pc - root) + 12) % 12) < 0) miss += 0.35; });
+          if (!hit) return;
+          const score = hit - miss * 0.4 - tpl.pcs.length * 0.06;
+          if (!best || score > best.score) best = { root: root, quality: tpl.name, score: score };
+        }
+      });
+      if (best && best.score >= 0.9){
+        out.push({ measure: bar, part: wi, root_pc: best.root,
+                   quality: best.quality, kind: CHORD_TEMPLATES.filter(function(t){ return t.name === best.quality; })[0].kind,
+                   label: midiToName(60 + best.root).slice(0, -1) + CHORD_QUALITY_LABEL[best.quality],
+                   score: Number(best.score.toFixed(2)) });
+      }
+    });
+  });
+  return out;
+}
+function extractMarkLowConf(notes, thr){
+  thr = (thr === undefined) ? 0.3 : Number(thr);
+  let cnt = 0;
+  (notes || []).forEach(function(n){
+    if (Number(n.confidence || 0) < thr && Number(n.confidence || 0) > 0){ n.lowconf = true; cnt++; }
+    else n.lowconf = false;
+  });
+  return cnt;
 }
 
 /* ============== 拔带 v0.9：中置声道分离（mid/side）+ 人声轨扒谱 + 导出纯伴奏 ==============
@@ -5678,9 +5786,96 @@ function extractFftMag(x, n){
   return mag;
 }
 
-function extractMelodyFramesV2(data, sr, inst, onProgress){
-  const W = 1024, hop = 320, nh = 8;
-  const bandLo = 160, bandHi = 1000, f0Lo = 130, f0Hi = 900, nCand = 200, K = 32;
+/* ============== 问题一：声源自适应（主导基频频段检测） ==============
+   对整段 PCM 做轻量帧级自相关（YIN 风格简版 + 二次差分包络），累积 f0 直方图
+   （对数分桶），取直方图主峰邻域确定主导基频带，反推带通聚焦范围与 HPS 谐波次数。
+   自动检测下无需用户指定声源：人声/萨克斯等单声部乐器均可自适应聚焦。 */
+function extractDetectDominantBand(data, sr, inst){
+  const n = data.length;
+  const winLen = Math.min(2048, Math.max(64, Math.floor(sr * 0.05)));
+  const hop = Math.max(256, Math.floor(winLen / 2));
+  const nFrames = Math.max(1, Math.floor((n - winLen) / hop));
+  const fMin = 55, fMax = 3200, bins = 48;
+  const hist = new Float32Array(bins);
+  const f0ByBin = new Array(bins);
+  for (let b = 0; b < bins; b++) f0ByBin[b] = fMin * Math.pow(fMax / fMin, b / (bins - 1));
+  const lagMin = Math.max(2, Math.floor(sr / fMax));
+  const lagMax = Math.min(Math.floor(sr / fMin), winLen - 1);
+  const w = new Float32Array(winLen);
+  for (let i = 0; i < winLen; i++) w[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / winLen);
+  let totE = 0;
+  for (let i = 0; i < n; i++) totE += data[i] * data[i];
+  const gRms = Math.sqrt(totE / Math.max(1, n));
+  const thr = Math.max(1e-3, gRms * 0.12);
+  let active = 0;
+  for (let f = 0; f < nFrames; f++){
+    const st = f * hop;
+    let e = 0;
+    for (let j = 0; j < winLen; j++) e += data[st + j] * data[st + j];
+    if (Math.sqrt(e / winLen) < thr) continue;
+    const seg = new Float32Array(winLen);
+    for (let j = 0; j < winLen; j++) seg[j] = data[st + j] * w[j];
+    const ac = new Float32Array(lagMax + 1);
+    for (let l = lagMin; l <= lagMax; l++){
+      let s = 0;
+      for (let j = 0; j < winLen - l; j++) s += seg[j] * seg[j + l];
+      ac[l] = s;
+    }
+    const ac0 = ac[lagMin] || 1e-9;
+    let bestLag = lagMin, bestScore = 0;
+    for (let l = lagMin; l <= lagMax; l++){
+      let cm = 0;
+      const m = Math.min(l - 1, 15);
+      for (let k = 1; k <= m; k++) cm += ac[l - k] + ac[l + k];
+      const score = ac[l] - cm / (2 * m);
+      if (score > bestScore){ bestScore = score; bestLag = l; }
+    }
+    if (bestScore <= ac0 * 0.08) continue;
+    const f0 = sr / bestLag;
+    if (f0 < fMin || f0 > fMax) continue;
+    active++;
+    const b = Math.max(0, Math.min(bins - 1, Math.round((bins - 1) * Math.log(f0 / fMin) / Math.log(fMax / fMin))));
+    hist[b] += bestScore / ac0;
+  }
+  if (active < Math.max(4, Math.floor(nFrames * 0.04))){
+    return { detected: false, bandLo: 130, bandHi: 1200, f0Lo: 100, f0Hi: 1100, nh: 8,
+             center: 350, label: "未检出稳定主导基频，采用通用频段" };
+  }
+  let peakB = 0, peakV = 0;
+  for (let b = 0; b < bins; b++) if (hist[b] > peakV){ peakV = hist[b]; peakB = b; }
+  const bw = Math.max(2, Math.round(bins * 0.22));
+  const loB = Math.max(0, peakB - bw), hiB = Math.min(bins - 1, peakB + bw);
+  let sum = 0, sumF = 0;
+  for (let b = loB; b <= hiB; b++){ sum += hist[b]; sumF += hist[b] * f0ByBin[b]; }
+  const center = sum > 0 ? sumF / sum : f0ByBin[peakB];
+  const loF = f0ByBin[loB], hiF = f0ByBin[hiB];
+  const f0Lo = Math.max(55, Math.round(loF * 0.8));
+  const f0Hi = Math.min(3200, Math.round(hiF * 1.45));
+  const bandLo = Math.max(50, Math.round(loF * 0.55));
+  const bandHi = Math.min(sr / 2 - 1, Math.round(hiF * 2.6));
+  const bwRatio = bandHi / Math.max(1, bandLo);
+  const nh = Math.max(5, Math.min(12, Math.round(14 - bwRatio * 1.4)));
+  let label = "人声/中频主导";
+  if (center < 180) label = "低频主导（男低/大提琴类）";
+  else if (center < 420) label = "中频主导（人声/萨克斯类）";
+  else if (center < 900) label = "中高频主导（小提琴/双簧管类）";
+  else label = "高频主导（萨克斯/长笛类）";
+  return { detected: true, bandLo: bandLo, bandHi: bandHi, f0Lo: f0Lo, f0Hi: f0Hi, nh: nh,
+           center: Math.round(center), label: label };
+}
+function extractMelodyFramesV2(data, sr, inst, onProgress, opts){
+  opts = opts || {};
+  let nh = 8, bandLo = 160, bandHi = 1000, f0Lo = 130, f0Hi = 900;
+  const nCand = 200, K = 32;
+  let adInfo = null;
+  if (opts.adaptive){
+    adInfo = extractDetectDominantBand(data, sr, inst);
+    if (adInfo.detected){
+      bandLo = adInfo.bandLo; bandHi = adInfo.bandHi;
+      f0Lo = adInfo.f0Lo; f0Hi = adInfo.f0Hi; nh = adInfo.nh;
+    }
+  }
+  const W = 1024, hop = 320;
   const x = extractBandpassFocused(data, sr, bandLo, bandHi, 8);
 
   const cands = new Float32Array(nCand);
@@ -5782,12 +5977,22 @@ function extractMelodyFramesV2(data, sr, inst, onProgress){
   }
 
   const frames = new Array(maxFrame);
+  let mxObs = 1e-9;
+  for (let f = 0; f < maxFrame; f++){
+    const base = f * K;
+    for (let k = 0; k < K; k++) if (obsVal[base + k] > mxObs) mxObs = obsVal[base + k];
+  }
   for (let f = 0; f < maxFrame; f++){
     const rms = rmsArr[f];
-    frames[f] = (rms > rmsThr && f0Smooth[f] >= f0Lo && f0Smooth[f] <= f0Hi)
-      ? { t: f * hop / sr, f0: f0Smooth[f], rms: rms }
-      : { t: f * hop / sr, f0: -1, rms: rms };
+    const base = f * K;
+    const rel = Math.max(0, Math.min(1, obsVal[base + path[f]] / mxObs));
+    const conf = (rms > rmsThr && f0Smooth[f] >= f0Lo && f0Smooth[f] <= f0Hi)
+      ? Math.max(0.2, Math.min(1, rel)) : 0;
+    frames[f] = (conf > 0)
+      ? { t: f * hop / sr, f0: f0Smooth[f], rms: rms, conf: conf }
+      : { t: f * hop / sr, f0: -1, rms: rms, conf: 0 };
   }
+  if (adInfo) frames.adaptive = adInfo;
   return frames;
 }
 
@@ -5827,8 +6032,8 @@ function extractMelodyFromAudio(audio, opts){
   const srcData = opts.data || audio.data;
   const srcSr = Number(opts.sr || audio.sr || 44100);
   if (!srcData || !srcData.length) throw new Error("没有可分析的音频数据（分析轨为空，请重新载入音频）");
-  const inst = opts.instrument || "vocal";
-  if (!INSTRUMENTS[inst]) throw new Error("未知声源类型：" + inst);
+  const inst = opts.instrument || "auto";
+  if (inst !== "auto" && !INSTRUMENTS[inst]) throw new Error("未知声源类型：" + inst);
   const tempoHint = (Number(opts.tempo_bpm) > 0 ? Number(opts.tempo_bpm) : null);
   const gridPerBeat = (Number(opts.grid_per_beat) > 0 ? Number(opts.grid_per_beat) : EXTRACT_GRID_PER_BEAT);
   const timeSigRaw = String(opts.time_sig || "4/4");
@@ -5837,20 +6042,31 @@ function extractMelodyFromAudio(audio, opts){
   let beatsPerMeasure = jianpuBeatsPerMeasure(timeSigRaw === "auto" ? "4/4" : timeSigRaw);
   let autoTimeSig = false;
 
-  const targetSr = targetSrFor(inst);
+  const targetSr = (inst === "auto") ? 32000 : targetSrFor(inst);
   const ds = downsample(srcData, srcSr, targetSr);
   const useEnhanced = !!(opts.from_vocal_track || opts.melody_enhanced);
+  const useAdaptive = (inst === "auto") || !!(opts.adaptive);
   /* v0.10：带伴奏（人声轨分离）走增强链路，单声部直通保持原 YIN 管线 */
-  const frames = useEnhanced ? extractMelodyFramesV2(ds.data, ds.sr, inst, null)
+  const frames = useEnhanced ? extractMelodyFramesV2(ds.data, ds.sr, inst, null, { adaptive: useAdaptive })
                              : analyzePitch(ds.data, ds.sr, inst, null);
-  const refA = Number((INSTRUMENTS[inst].base || 440));
+  const refA = Number(((INSTRUMENTS[inst] || { base: 440 }).base || 440));
   const segRaw = segmentNotes(frames, refA, 25.0);
   /* 字段归一：segmentNotes 输出 t0/t1/dur，下游 quantize/clean 读取 onset_sec/dur_sec */
+  const frameConf = function(t0, t1){
+    if (!frames || !frames.length || frames[0].conf === undefined) return 0;
+    let s = 0, c = 0;
+    for (let i = 0; i < frames.length; i++){
+      const fr = frames[i];
+      if (fr.f0 > 0 && fr.t >= t0 - 0.02 && fr.t <= t1 + 0.02){ s += fr.conf; c++; }
+    }
+    return c ? s / c : 0;
+  };
   const seg = segRaw.map(function(n){
     return { onset_sec: n.t0, dur_sec: n.t1 - n.t0, midi: n.midi, cents: n.cents,
              dur: n.t1 - n.t0, t0: n.t0, t1: n.t1, name: n.name,
              jitter: n.jitter, rms_avg: n.rms_avg, rms_peak: n.rms_peak,
-             rms_cv: n.rms_cv, severity: n.severity, unstable: n.unstable };
+             rms_cv: n.rms_cv, severity: n.severity, unstable: n.unstable,
+             confidence: frameConf(n.t0, n.t1) };
   });
   if (!seg.length)
     throw new Error(useEnhanced
@@ -5873,6 +6089,8 @@ function extractMelodyFromAudio(audio, opts){
   }
   let notes = extractQuantize(seg, beatsPerMeasure, secPerBeat, gridPerBeat);
   notes = extractCleanNotes(notes, beatsPerMeasure, secPerBeat, gridPerBeat);   /* F批：谱面净化（音高去抖/短音合并/小节校验修正） */
+  const nLowConf = extractMarkLowConf(notes, 0.3);   /* 问题二：低可信片段标记（谱面淡化 + 旁注） */
+  const chords = extractDeriveChords(notes, beatsPerMeasure);   /* 问题二：和弦功能谱（可开关渲染） */
   extractMarkTriplets(notes, secPerBeat);   /* D4：识别三连音并改写时值供渲染 */
   let mx = 0, lo = Infinity, hi = -Infinity;
   notes.forEach(function(n){
@@ -5883,12 +6101,20 @@ function extractMelodyFromAudio(audio, opts){
   if (autoTimeSig) warnings.push("拍号为自动推导（" + timeSig + "），如需修正可手动指定后重跑");
   if (!tempoHint) warnings.push("速度由音间间隔自动估计（" + tempoBpm + " BPM），结果对节拍解释敏感");
   if (keyInfo.score !== null && keyInfo.score < 0.75) warnings.push("调性自动判断置信度偏低，建议手动指定调性后重跑");
+  if (nLowConf > 0) warnings.push("低可信片段 " + nLowConf + " 处（置信 < 0.30）已在谱面淡化标记，请以听感核对");
+  if (chords.length) warnings.push("和弦功能谱：推导 " + chords.length + " 个和弦标注（三/七和弦，参考级，可在谱面开关）");
   let melodyQuality = null;
   if (useEnhanced){
     melodyQuality = extractMelodyQuality(seg, frames);
     if (melodyQuality && !melodyQuality.reliable){
       warnings.push("增强拔带可靠性不足（" + melodyQuality.reason + "）：本曲为带伴奏混音，未做 ML 音源分离，输出为主导声部参考轮廓，请以听感为准");
     }
+  }
+  const adInfo = (frames && frames.adaptive) || null;
+  if (useEnhanced && useAdaptive && adInfo){
+    warnings.push("声源自适应：" + adInfo.label + "（中心约 " + adInfo.center + " Hz），带通聚焦 " +
+      adInfo.bandLo + "–" + adInfo.bandHi + " Hz，HPS 谐波 " + adInfo.nh + " 次" +
+      (adInfo.detected ? "" : "（检测置信不足，回退通用频段）"));
   }
   if (opts.from_vocal_track) warnings.push("基于人声轨分析：已用 mid/side 中置声道法分离（k=" +
     (isFinite(Number(opts.split_k)) ? Number(opts.split_k).toFixed(2) : "0.6") +
@@ -5904,28 +6130,34 @@ function extractMelodyFromAudio(audio, opts){
     notes: notes,
     meta: {
       source: "hum_extract（拔带 · " + (useEnhanced
-          ? "基于人声轨分析（mid/side 中置声道 + 人声频段聚焦 + HPS 谐波增强 + Viterbi 轨迹平滑）"
+          ? (useAdaptive
+              ? "主导声部自适应（自动检测基频频段 + 带通聚焦 + HPS 谐波增强 + Viterbi 轨迹平滑）"
+              : "基于人声轨分析（mid/side 中置声道 + 人声频段聚焦 + HPS 谐波增强 + Viterbi 轨迹平滑）")
           : "单声部直通") + "：" + (opts.source_label || "录音") + "）",
       source_kind: "extract", format: "hum-extract-v1", version: "v0.10",
       from_vocal_track: !!opts.from_vocal_track,
-      melody_engine: useEnhanced ? "vocal-focus-hps-viterbi" : "yin",
+      melody_engine: useEnhanced ? (useAdaptive ? "adaptive-band-hps-viterbi" : "vocal-focus-hps-viterbi") : "yin",
       melody_quality_score: melodyQuality ? melodyQuality.score : null,
       melody_reliable: melodyQuality ? melodyQuality.reliable : null,
       instrument: inst, time_sig: timeSig, beats_per_measure: beatsPerMeasure,
+      adaptive_band: adInfo ? { detected: adInfo.detected, label: adInfo.label,
+                                center_hz: adInfo.center, band_lo_hz: adInfo.bandLo,
+                                band_hi_hz: adInfo.bandHi, f0_lo_hz: adInfo.f0Lo,
+                                f0_hi_hz: adInfo.f0Hi, nh: adInfo.nh } : null,
       tempo_bpm: tempoBpm, tempo_estimated: (tempoHint === null),
       tonic_pc: keyInfo.tonic_pc, mode: keyInfo.mode, key_label: keyInfo.key_label,
       key_score: keyInfo.score, start_octave: 4,
       grid_per_beat: gridPerBeat, quantize_sec: Number((secPerBeat / gridPerBeat).toFixed(6)),
       raw_n_notes: seg.length, n_notes: notes.length,
+      n_lowconf: nLowConf, chords: chords, chords_enabled_default: true,
       n_measures: notes.reduce(function(a, n){ return Math.max(a, n.measure); }, 1),
       duration_sec: Number(mx.toFixed(6)),
       pitch_range: [midiToName(lo), midiToName(hi)],
       score_pitch: "sounding", transpose: 0,
       warnings: warnings,
       boundary: useEnhanced
-        ? ["基于人声轨分析：分离结果为近似，残留伴奏可能引入少量杂音",
-           "增强链路为 DSP 主导声部估计（非 ML 音源分离）：密集混音时输出为主导声部参考轮廓，极端情况下（伴奏压过人声）结果可能偏向伴奏和声",
-           "不做复音/和弦提取（密集和声仍无法成谱）",
+        ? ["增强链路为 DSP 主导声部估计（非 ML 音源分离）：分离结果为近似，密集混音时输出为主导声部参考轮廓，极端情况下（伴奏压过目标声部）结果可能偏向伴奏和声",
+           "声源自适应聚焦的是主导基频频段（人声/萨克斯等单声部乐器），复音/密集和声仍无法成谱",
            "提取结果为参考级，仅用于练习比对，不构成对任何作品的权利主张"]
         : ["仅支持单声部清唱 / 独奏（无和弦、无复音）",
            "单声道直通：未做音源分离",
@@ -5997,11 +6229,11 @@ const STAVE_KEYSIG = {
 };
 const STAVE_CLEF_G_MIN = 55;   /* 大调 E4(midi 64) 及以下也可用 G 谱；E4+ 用 G 谱 */
 const STAVE_RENDER = {
-  x0: 62, y0: 26, gap: 10, beatX: 30,
-  timeX: 44, ksX: 20, rowGap: 40,
-  minNoteGap: 11,          /* F批：音符最小水平间距 px（按最密拍距动态放大 beatX，防重叠） */
-  targetRowW: 880,         /* F批：目标行宽 px（含谱号/调号区），超宽自动断行 */
-  maxRowBeats: 16          /* F批：单行拍数上限（仍以整小节入行为准） */
+  x0: 62, y0: 26, gap: 11, beatX: 32,
+  timeX: 44, ksX: 20, rowGap: 48,
+  minNoteGap: 13,         /* F批：音符最小水平间距 px（按最密拍距动态放大 beatX，防重叠） */
+  targetRowW: 880,        /* F批：目标行宽 px（含谱号/调号区），超宽自动断行 */
+  maxRowBeats: 16         /* F批：单行拍数上限（仍以整小节入行为准） */
 };
 function staveKeySig(keyName){ return STAVE_KEYSIG[keyName] || []; }
 function stavePitchClass(midi){ return ((Math.round(midi) % 12) + 12) % 12; }
@@ -6052,6 +6284,9 @@ function staveRender(svg, notes, meta, keyName, tonicPc){
   const R = STAVE_RENDER, h = R.gap;
   const yTop = R.y0, yBot = yTop + 4 * h;
   const midY = (yTop + yBot) / 2;
+  /* 问题二：和弦功能谱——按小节标注（仅在该功能开启且 meta.chords 非空时生效） */
+  const chordByBar = {};
+  (meta && meta.chords || []).forEach(function(c){ if (c && !chordByBar[c.measure]) chordByBar[c.measure] = c.label; });
 
   /* ---------- 1. 预处理：时值换算（拍）---------- */
   const evs = [];
@@ -6198,7 +6433,8 @@ function staveRender(svg, notes, meta, keyName, tonicPc){
     /* 布局音符 */
     const laid = row.segs.map(function(seg){
       const bx = startX + (seg.start - rowAbsStart) * rowBeatX;
-      return { x: bx, dur: seg.dur, midi: seg.midi, rest: seg.rest, first: seg.first, last: seg.last, bar: seg.bar };
+      return { x: bx, dur: seg.dur, midi: seg.midi, rest: seg.rest, first: seg.first, last: seg.last, bar: seg.bar,
+               lowconf: !!(seg.raw && seg.raw.lowconf) };
     });
     /* 小节线：每个小节边界（除行首）画单线；行尾画终止双线 */
     for (let b = 1; b <= rowMeasures; b++){
@@ -6209,6 +6445,12 @@ function staveRender(svg, notes, meta, keyName, tonicPc){
         parts.push('<line class="stave-bar" x1="' + bx2 + '" y1="' + yT + '" x2="' + bx2 + '" y2="' + yB + '" stroke-width="3"/>');
       } else {
         parts.push('<line class="stave-bar" x1="' + bx2 + '" y1="' + yT + '" x2="' + bx2 + '" y2="' + yB + '"/>');
+      }
+      /* 问题二：和弦功能谱——小节起点上方标注和弦名 */
+      const ch = chordByBar[row.barStart + b - 1];
+      if (ch){
+        const bx1 = startX + (b - 1) * beatsPerMeasure * rowBeatX;
+        parts.push('<text x="' + (bx1 + 6) + '" y="' + (yT - 9) + '" class="stave-chord" font-size="16">' + esc(ch) + '</text>');
       }
     }
     /* 行内连音线（tie）：相邻同音高（含跨小节段间） */
@@ -6277,8 +6519,11 @@ function staveRender(svg, notes, meta, keyName, tonicPc){
       }
       prevMidi = midi; prevBar = p.bar;
       /* 音符头：全音符空心无符杆；二分空心有符杆；其余实心有符杆 */
-      parts.push('<ellipse class="' + (half ? "stave-note hollow" : "stave-note") + '" cx="' + p.x + '" cy="' + y +
+      parts.push('<ellipse class="' + (half ? "stave-note hollow" : "stave-note") + (p.lowconf ? " lowconf" : "") + '" cx="' + p.x + '" cy="' + y +
                  '" rx="' + (whole ? 7 : 6) + '" ry="' + (whole ? 5.2 : 4.6) + '"/>');
+      if (p.lowconf){
+        parts.push('<text x="' + (p.x + 10) + '" y="' + (y - 7) + '" class="stave-lowconf" font-size="12">?</text>');
+      }
       if (!whole){
         parts.push('<line class="stave-stem" x1="' + stemX + '" y1="' + stemTop + '" x2="' + stemX + '" y2="' + stemBot + '"/>');
       }
@@ -6424,7 +6669,12 @@ function extractRenderAll(){
   const relPc = (mode === "minor") ? ((tonicPc2 + 3) % 12) : tonicPc2;   /* 小调按关系大调记谱 */
   const tNotes = extractTransposeNotes(r.notes, interval);
   let stat = null;
-  if (svg && svg.setAttribute){ stat = staveRender(svg, tNotes, m, keyName, relPc); }
+  if (svg && svg.setAttribute){
+    /* 问题二：和弦功能谱开关（extractChordsOn 复选框） */
+    const chordsOn = !!(document.getElementById("extractChordsOn") && document.getElementById("extractChordsOn").checked);
+    const metaForStave = chordsOn ? m : Object.assign({}, m, { chords: [] });
+    stat = staveRender(svg, tNotes, metaForStave, keyName, relPc);
+  }
   if (tpNote){
     const jpKey = (mode === "minor") ? STAVE_PITCH_NAMES[(tonicPc2 + 3) % 12] : STAVE_PITCH_NAMES[tonicPc2];
     tpNote.innerHTML = "<b>" + esc(tp.label) + "</b>：" + esc(tp.desc) +
@@ -6468,7 +6718,10 @@ function extractApplyResult(r, dtMs){
   $("extractJianpu").value = jpText;
   const warn = (m.warnings || []).map(function(w){ return '<span class="warnline">' + esc(w) + "</span>"; }).join("<br>");
   $("extractNote").innerHTML =
-    "<b>提取完成（参考级" + (m.from_vocal_track ? " · 基于人声轨分析" : "") + "）</b>：" + esc(m.instrument) + " · 原始 " + r.frames.length + " 帧 → 切分 " +
+    "<b>提取完成（参考级" + (m.from_vocal_track ? " · 基于人声轨分析" : "") + "）</b>：" +
+    esc(m.instrument === "auto" ? "自动检测" : m.instrument) +
+    (m.melody_engine === "adaptive-band-hps-viterbi" ? " · 声源自适应" : "") +
+    " · 原始 " + r.frames.length + " 帧 → 切分 " +
     m.raw_n_notes + " 音 → 量化后 <b>" + m.n_notes + "</b> 音 · " + esc(m.key_label) + " · " +
     fmtNum(m.tempo_bpm, 1) + " BPM" + (m.tempo_estimated ? "（自动）" : "（手动）") +
     " · 拍号 " + esc(m.time_sig) + " · 网格 1/" + (m.grid_per_beat * 4) + " · 时长 " +
@@ -6496,14 +6749,17 @@ function extractInit(){
       setStatus("拔带：正在提取单声部旋律…（" + (useVocal ? "基于人声轨 · " : "单声部直通 · ") + "YIN 逐帧 + 音符切分 + 网格量化）", "");
       const t0 = (window.performance && performance.now) ? performance.now() : Date.now();
       const tempoRaw = parseFloat($("extractTempo").value);
+      const srcSel = $("extractSource").value;
       const opts = {
-        instrument: $("extractSource").value,
+        instrument: srcSel,
         time_sig: $("extractTimeSig").value,
         tempo_bpm: (isFinite(tempoRaw) ? tempoRaw : null),
         key: ($("extractKey").value.trim() || null),
         grid_per_beat: (parseInt($("extractGrid").value, 10) || EXTRACT_GRID_PER_BEAT),
         source_label: EXTRACT_STATE.label || "录音"
       };
+      /* 自动检测：单声道直通也走增强链路（自适应基频频段），避免 analyzePitch 因 auto 无预设报错 */
+      if (srcSel === "auto") opts.melody_enhanced = true;
       if (useVocal){
         opts.data = EXTRACT_STATE.vocalTrack;
         opts.sr = EXTRACT_STATE.audio.sr || 44100;
@@ -6518,6 +6774,10 @@ function extractInit(){
       $("extractNote").innerHTML = '<span class="warnline">' + esc(e.message) + "</span>";
     }
   });
+
+  /* 问题二：和弦功能谱开关——切换即重渲染谱面 */
+  const chkEl = $("extractChordsOn");
+  if (chkEl) chkEl.addEventListener("change", function(){ try { extractRenderAll(); } catch (e){} });
 
   const exportWavEl = $("btnExtractExportWav");
   if (exportWavEl) exportWavEl.addEventListener("click", function(){
@@ -7200,7 +7460,7 @@ const TEMPO_NAMES = [
   {lo: 200, hi: 240, zh: "Prestissimo（最急板）"}
 ];
 const METRO2 = {
-  on: false, bpm: 90, vol: 0.6, accent: true, subdiv: false,
+  on: false, bpm: 90, vol: 0.6, accent: true, subdiv: 0, pattern: "standard",
   num: 4, den: 4, ctx: null, timer: null, raf: null, holdTimer: null,
   lookaheadMs: 25, scheduleAhead: 0.12,
   nextTime: 0, beatIdx: 0, queue: []
@@ -7212,13 +7472,28 @@ function metro2TempoName(bpm){
   }
   return "—";
 }
-function metro2BeatPattern(num){
-  if (num === 2) return [1.0, 0.5];
-  if (num === 3) return [1.0, 0.5, 0.5];
-  if (num === 4) return [1.0, 0.5, 0.75, 0.5];
-  if (num === 6) return [1.0, 0.45, 0.45, 0.7, 0.45, 0.45];
-  const a = [1.0];
-  for (let i = 1; i < num; i++) a.push(0.5);
+function metro2BeatPattern(num, pattern){
+  pattern = pattern || "standard";
+  const a = [];
+  for (let i = 0; i < num; i++) a.push(0.5);
+  if (pattern === "march"){
+    a[0] = 1.0;
+    if (num > 1) a[1] = 0.75;
+    if (num > 2) a[2] = 0.5;
+    if (num > 3) a[3] = 0.75;
+  } else if (pattern === "waltz"){
+    a[0] = 1.0;
+    for (let i = 1; i < num; i++) a[i] = 0.45;
+  } else if (pattern === "compound68"){
+    a[0] = 1.0;
+    for (let i = 1; i < num; i++) a[i] = 0.45;
+    if (num > 3) a[3] = 0.7;
+  } else {
+    a[0] = 1.0;
+    if (num === 3){ a[1] = 0.5; a[2] = 0.5; }
+    else if (num === 4){ a[1] = 0.5; a[2] = 0.75; a[3] = 0.5; }
+    else if (num === 6){ a[1] = 0.45; a[2] = 0.45; a[3] = 0.7; a[4] = 0.45; a[5] = 0.45; }
+  }
   return a;
 }
 function metro2FreqOf(strong, isSub){
@@ -7244,17 +7519,18 @@ function metro2Click(t, freq, vol){
 function metro2Scheduler(){
   const M = METRO2, ctx = M.ctx;
   if (!M.on || !ctx) return;
+  const factor = M.subdiv || 1;   /* 1=无细分，2=8分音符，4=16分音符 */
   while (M.nextTime < ctx.currentTime + M.scheduleAhead){
     const t = M.nextTime;
-    const isSub = M.subdiv && (M.beatIdx % 2 === 1);
-    const barIdx = isSub ? Math.floor(M.beatIdx / 2) % M.num : M.beatIdx % M.num;
-    const pat = metro2BeatPattern(M.num);
-    const strong = isSub ? 0.3 : (M.accent ? pat[barIdx] : 0.6);
+    const isSub = factor > 1 && (M.beatIdx % factor !== 0);
+    const barIdx = isSub ? Math.floor(M.beatIdx / factor) % M.num : M.beatIdx % M.num;
+    const pat = metro2BeatPattern(M.num, M.pattern);
+    const strong = isSub ? 0.28 : (M.accent ? pat[barIdx] : 0.6);
     const freq = metro2FreqOf(strong, isSub);
     metro2Click(t, freq, strong * M.vol);
     M.queue.push({ t: t, beat: barIdx, strong: strong, sub: isSub });
     M.beatIdx++;
-    M.nextTime += 60.0 / M.bpm / (M.subdiv ? 2 : 1);
+    M.nextTime += 60.0 / M.bpm / factor;
   }
 }
 function metro2Raf(){
@@ -7265,7 +7541,7 @@ function metro2Raf(){
     const ev = M.queue.shift();
     metro2Flash(ev.beat, ev.strong, ev.sub);
   }
-  const beatDur = 60.0 / M.bpm / (M.subdiv ? 2 : 1);
+  const beatDur = 60.0 / M.bpm / (M.subdiv || 1);
   const phase = Math.max(0, Math.min(1, (now - (M.nextTime - beatDur)) / beatDur));
   const fill = $("metro2ProgFill");
   if (fill) fill.style.width = (phase * 100).toFixed(1) + "%";
@@ -7319,9 +7595,10 @@ function metro2Toggle(){
 }
 function metro2SyncBpmUI(){
   const M = METRO2;
-  const rng = $("metro2Bpm"), val = $("metro2BpmVal"), nm = $("metro2TempoName");
+  const rng = $("metro2Bpm"), val = $("metro2BpmVal"), nm = $("metro2TempoName"), num = $("metro2BpmNum");
   if (rng) rng.value = String(M.bpm);
   if (val) val.textContent = String(M.bpm);
+  if (num && document.activeElement !== num) num.value = String(M.bpm);
   if (nm) nm.textContent = metro2TempoName(M.bpm);
 }
 function metro2Step(delta){
@@ -7382,13 +7659,41 @@ function metro2Init(){
   }
   const acc = $("metro2Accent");
   if (acc) acc.addEventListener("change", function(){ M.accent = acc.checked; });
-  const sd = $("metro2Subdiv");
+  /* 问题三：点按数字直接输入 BPM（回车/失焦/实时输入均生效） */
+  const bpmNum = $("metro2BpmNum");
+  if (bpmNum){
+    function syncFromNum(){
+      const v = Math.max(40, Math.min(240, Math.round(Number(bpmNum.value) || 90)));
+      bpmNum.value = String(v);
+      M.bpm = v;
+      metro2SyncBpmUI();
+      if (M.on) metro2ResetPhase();
+    }
+    bpmNum.addEventListener("change", syncFromNum);
+    bpmNum.addEventListener("input", function(){ M.bpm = Math.max(40, Math.min(240, Number(bpmNum.value) || 90)); metro2SyncBpmUI(); });
+  }
+  /* 问题三：节拍类型（强拍位置） */
+  const pat = $("metro2Pattern");
+  if (pat){
+    pat.addEventListener("change", function(){
+      M.pattern = pat.value || "standard";
+      if (M.on) metro2ResetPhase();
+    });
+  }
+  /* 问题三：细分 8分/16分（select 0/2/4） */
+  const sd = $("metro2SubdivSel");
   if (sd) sd.addEventListener("change", function(){
-    M.subdiv = sd.checked;
+    M.subdiv = Math.max(0, Number(sd.value) || 0);
     if (M.on) metro2ResetPhase();
   });
   const vl = $("metro2Vol");
-  if (vl) vl.addEventListener("input", function(){ M.vol = (Number(vl.value) || 60) / 100; });
+  if (vl){
+    vl.addEventListener("input", function(){
+      M.vol = (Number(vl.value) || 60) / 100;
+      const vv = $("metro2VolVal");
+      if (vv) vv.textContent = vl.value + "%";
+    });
+  }
   metro2SyncBpmUI();
   metro2RenderDots();
 }
