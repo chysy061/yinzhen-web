@@ -4169,7 +4169,9 @@ function playNotes(notes, label, speed){
   const synth = synthFromRef(notes, { sr: ctx.sampleRate, cents: 0 });
   const spd = (speed && speed > 0) ? speed : 1;
   const sec = (synth.data.length / ctx.sampleRate) / spd;
-  upPlayBuf(buf, (label || "参考序列") + "（合成音）", sec, spd);
+  const ab = ctx.createBuffer(1, synth.data.length, ctx.sampleRate);
+  ab.getChannelData(0).set(synth.data);
+  upPlayBuf(ab, (label || "参考序列") + "（合成音）", sec, spd);
   const spdTxt = (speed && speed > 0 && speed !== 1) ? "，速度 " + (Math.round(speed * 100) / 100) + "×" : "";
   setStatus("试听中：" + (label || "参考序列") + "（合成音，共 " + fmtNum(sec, 2) +
             " s" + spdTxt + "）。点「停止」或按 Esc 中断。", "ok");
@@ -7234,8 +7236,9 @@ const WORKER_CONSTS = ["INSTRUMENTS","ENGINE_CFG","ALIGN_DEFAULTS","MAX_CELLS","
 function buildWorkerSrc(){
   const parts = [];
   for (const n of WORKER_CONSTS){
-    const v = (typeof window !== "undefined" && window[n] !== undefined) ? window[n] :
+    let v = (typeof window !== "undefined" && window[n] !== undefined) ? window[n] :
       (typeof globalThis !== "undefined" && globalThis[n] !== undefined ? globalThis[n] : undefined);
+    if (v === undefined){ try { v = new Function("return " + n + ";")(); } catch (e){} }
     if (v === undefined) continue;
     try { parts.push("const " + n + " = " + JSON.stringify(v) + ";"); } catch (e){}
   }
@@ -7271,7 +7274,7 @@ function analyzeBufferWorker(audio, ref, params, done){
   } catch (e){ fail("Worker 异常：" + (e && e.message || e)); }
 }
 
-function runAnalysis(trigger){
+function runAnalysis(trigger, cb){
   if (!APP.ref || !APP.ref.notes.length){
     setStatus("还没有参考序列：点下方「一键生成音阶参考 / 载入内置曲」即可快速开始，或到「音阶 / 曲目 / 曲库」模式载入参考谱。", "err");
     show("refGuide", true);
@@ -7297,12 +7300,13 @@ function runAnalysis(trigger){
       try { r = analyzeBufferCore(APP.audio, APP.ref, params); } catch (e){ r = null; }
       if (r) r.d._ms = t0 ? Math.round((performance.now ? performance.now() : 0) - t0) : null;
     }
-    if (!r){ setStatus("分析失败" + (wmsg ? "：" + wmsg : ""), "err"); return null; }
+    if (!r){ setStatus("分析失败" + (wmsg ? "：" + wmsg : ""), "err"); if (cb){ try { cb(null, wmsg); } catch (e){} } return null; }
     APP.result = r.d;
     renderResult(r.d, r);
     setStatus("诊断完成：检测到 " + r.d.summary.detected_notes + " 个音，对齐成功 " +
               r.d.summary.matched + " 个，错音 " + r.d.summary.wrong + "，漏音/未检出 " +
               r.d.summary.missing + "，覆盖率 " + fmtNum(r.d.alignment.coverage * 100, 1) + "%。", "ok");
+    if (cb){ try { cb(r.d, r); } catch (e){} }
     return r.d;
   };
   /* C1：优先内联 Worker（异步），失败自动回退同步 */
@@ -8950,8 +8954,11 @@ init();
     if (!APP.audio || !APP.audio.data.length){ setSimpleStatus("还没有声音：请点「开始录音」或「从手机里选音乐」（第 2 步）", "err"); return; }
     setSimpleStatus("正在分析…请稍等", "");
     try {
-      const d = runAnalysis("简易模式");
-      if (d){ setSimpleStatus("分析完成，请看下面的结果", "ok"); setSimpleResult(d); }
+      runAnalysis("简易模式", function(d){
+        if (!d){ setSimpleStatus("分析失败：请重试或到完整版查看详情", "err"); return; }
+        setSimpleStatus("分析完成，请看下面的结果", "ok");
+        setSimpleResult(d);
+      });
     } catch (e){ setSimpleStatus("分析失败：" + e.message, "err"); }
   }
   function ckStreak(arr, dateStr){
