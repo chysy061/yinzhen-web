@@ -444,6 +444,58 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
 @media (prefers-color-scheme: dark){
   .stave-wrap{background:#fff}
 }
+/* ================= P6 全局居中提示（成功绿 / 失败红） ================= */
+.toast-root{position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+.toast-item{pointer-events:auto;max-width:min(420px,84vw);padding:16px 22px;border-radius:14px;text-align:center;font-size:14.5px;line-height:1.55;box-shadow:0 12px 34px rgba(0,0,0,.42);background:#10141d;color:var(--fg);animation:toastIn .25s ease-out}
+.toast-item.ok{border:1px solid rgba(56,178,112,.75);box-shadow:0 0 0 1px rgba(56,178,112,.35),0 12px 34px rgba(0,0,0,.42)}
+.toast-item.err{border:1px solid rgba(224,82,82,.85);box-shadow:0 0 0 1px rgba(224,82,82,.4),0 12px 34px rgba(0,0,0,.42)}
+.toast-item .t-title{display:block;font-weight:700;margin-bottom:2px;color:var(--fg)}
+.toast-item.ok .t-title{color:#3fd389}
+.toast-item.err .t-title{color:#ff7a7a}
+.toast-item .t-sub{display:block;font-size:12.5px;color:var(--dim);word-break:break-all}
+@keyframes toastIn{from{opacity:0;transform:translateY(10px) scale(.96)}to{opacity:1;transform:none}}
+/* ================= P8 统一播放器组件 ================= */
+.uniplayer{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:9990;display:none;width:min(560px,calc(100vw - 24px));background:#141926;border:1px solid var(--line);border-radius:14px;padding:10px 14px;box-shadow:0 14px 40px rgba(0,0,0,.5)}
+.uniplayer.show{display:block}
+.up-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
+.up-head b{font-size:13.5px;word-break:break-all}
+.up-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+#upPlayPause{min-width:64px}
+.up-track{position:relative;flex:1 1 120px;height:22px;display:flex;align-items:center;cursor:pointer;background:rgba(255,255,255,.05);border-radius:8px;min-width:90px}
+.up-fill{position:absolute;left:0;top:10px;height:2px;width:0;background:var(--acc);border-radius:2px}
+.up-thumb{position:absolute;left:0;top:5px;width:12px;height:12px;border-radius:50%;background:var(--acc);transform:translateX(-50%);box-shadow:0 0 0 2px #10141d}
+.up-vol{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--dim)}
+#upTime{font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums}
+/* ================= P4 我的曲库 ================= */
+.lib-mine{margin-top:16px;border-top:1px dashed var(--line);padding-top:12px}
+.lib-mine h4{margin:0 0 8px}
+.lib-my-item{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:9px 10px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;background:#0f141d}
+.lib-my-item .mi-title{flex:1 1 150px;font-size:13.5px;font-weight:600;word-break:break-all;min-width:0}
+.lib-my-item .mi-kind{font-size:11.5px;color:var(--dim);flex:0 0 auto}
+.lib-my-imgs{margin-top:8px}
+/* ================= P5 参考谱展示与练习建议 ================= */
+.ref-img-row{border:1px solid var(--line);border-radius:10px;padding:8px;margin-top:8px;background:#0f141d}
+.ref-img-row img{max-width:100%;height:auto;display:block;border-radius:6px}
+.refscore-pdf{width:100%;height:520px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.refscore-box{border:1px dashed var(--line);border-radius:10px;padding:10px;margin-top:10px;background:#0f141d}
+.refscore-box .refscore-note{font-size:12.5px;color:var(--dim);margin:4px 0 8px}
+.refscore-img{max-width:100%;height:auto;display:block;border-radius:8px;margin-top:8px}
+.advice-card{border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:10px;padding:10px 12px;margin-top:12px;background:#0f141d}
+.advice-card h4{margin:0 0 6px;font-size:13.5px}
+.adv-item{margin:4px 0;font-size:13px;line-height:1.6}
+/* ================= P7 顶部布局：375px 全入口可见可点 ================= */
+@media (max-width:520px){
+  .refbar .rb-r{width:100%;flex-wrap:wrap;justify-content:flex-start;margin-top:6px}
+  .refbar .rb-r .mini-label{flex:1 1 140px;min-width:0}
+  .tabs.mode-big{flex-wrap:wrap;gap:6px}
+  .mode-big .tab{flex:1 1 46%;min-width:0;white-space:nowrap;text-align:center}
+  .toolbar-top,.topbar,.top-bar,.headbar{flex-wrap:wrap;gap:6px}
+}
+@media (max-width:375px){
+  .wrap{padding:10px 8px 48px}
+}
+
+
 </style>
 </head>
 <body>
@@ -738,7 +790,18 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
         解析失败时会自动选中出错行，方便直接改；输入过程中下方「实时校验」即时提示小节拍数问题（末小节允许不满），不用等点解析。
         参考序列可导出为 v0.5 参考序列包 .json（顶部参考条「导出 .json」），也可从 .json 导入 / 拖入（字段沿用 onset_sec / dur_sec / midi / measure / beat + meta）。
       </div>
+
+      <div class="row" style="margin-top:10px">
+        <div class="field dropzone" id="refScoreImgDrop" style="flex:3 1 320px">
+          <label>参考谱图片 / PDF（参考谱模式，红线内不做 OCR）</label>
+          <input type="file" id="refScoreImgFile" accept=".png,.jpg,.jpeg,.webp,.pdf">
+          <div class="dropHint">png / jpg / jpeg / webp / pdf：此处仅查看，可按参考谱手动录入文本简谱分析；长图自动切行显示</div>
+        </div>
+      </div>
+      <div id="refScoreBox"></div>
+      <div id="adviceBox"></div>
       <div class="pending hidden" id="piecePending"></div>
+
     </div>
 
     <!-- ---- 拔带模式（清唱/独奏单声部旋律提取；仅限用户自持素材，输出为参考级） ---- -->
@@ -951,7 +1014,28 @@ button,select,input,textarea{-webkit-touch-callout:none;-webkit-tap-highlight-co
         <span class="kv" id="libMore"></span>
       </div>
       <div class="note" id="libMeta"></div>
+
       <div id="libDetail"></div>
+
+      <!-- ===== P4 我的曲库：用户自备谱上传入库 ===== -->
+      <div class="lib-mine" id="myLib">
+        <h4>我的曲库（用户自备谱，仅存本机）</h4>
+        <div class="row" style="margin-top:0">
+          <div class="field dropzone" id="myLibDrop" style="flex:3 1 320px">
+            <label>上传自备谱入库</label>
+            <input type="file" id="myLibFile" multiple accept=".txt,.csv,.tsv,.abc,.musicxml,.xml,.png,.jpg,.jpeg,.webp,.pdf">
+            <div class="dropHint">文本简谱(.txt/.csv/.tsv)、ABC(.abc)、MusicXML(.musicxml/.xml) 自动解析入库；图片(.png/.jpg/.jpeg/.webp) 与 PDF 作参考谱入库（红线内不做 OCR），单文件 &le; 2MB</div>
+          </div>
+          <div class="field">
+            <label>说明</label>
+            <div class="dropHint">入库 = 存到本机浏览器（localStorage），可查看 / 删除 / 一键导入练习；不联网、不上传</div>
+          </div>
+        </div>
+        <div class="note" id="myLibHint"></div>
+        <div id="myLibList"></div>
+        <div id="myLibImgs"></div>
+      </div>
+
     </div>
   </div>
 
@@ -4076,22 +4160,16 @@ function audioCtxGet(){
 }
 function stopPlay(){
   if (PLAYER.node){ try { PLAYER.node.stop(); } catch (e){} PLAYER.node = null; }
+  try { upStopSrc(); } catch (e){}
 }
 function playNotes(notes, label, speed){
   if (!notes || !notes.length) throw new Error("没有可试听的音符");
   stopPlay();
   const ctx = audioCtxGet();
   const synth = synthFromRef(notes, { sr: ctx.sampleRate, cents: 0 });
-  const buf = ctx.createBuffer(1, synth.data.length, ctx.sampleRate);
-  buf.getChannelData(0).set(synth.data);
-  const src = ctx.createBufferSource();
-  src.buffer = buf;
-  src.connect(ctx.destination);
-  src.onended = function(){ if (PLAYER.node === src) PLAYER.node = null; };
-  src.start(0);
-  if (speed && speed > 0 && speed !== 1) src.playbackRate.value = speed;
-  PLAYER.node = src;
-  const sec = (synth.data.length / ctx.sampleRate) / (speed && speed > 0 ? speed : 1);
+  const spd = (speed && speed > 0) ? speed : 1;
+  const sec = (synth.data.length / ctx.sampleRate) / spd;
+  upPlayBuf(buf, (label || "参考序列") + "（合成音）", sec, spd);
   const spdTxt = (speed && speed > 0 && speed !== 1) ? "，速度 " + (Math.round(speed * 100) / 100) + "×" : "";
   setStatus("试听中：" + (label || "参考序列") + "（合成音，共 " + fmtNum(sec, 2) +
             " s" + spdTxt + "）。点「停止」或按 Esc 中断。", "ok");
@@ -4315,9 +4393,9 @@ async function extractLoadAudio(f){
       " Hz。<br>" + hint + " 点「提取旋律」开始。";
     extractSplitInfoUpdate();
     setStatus("拔带：音频已就绪" + (nCh >= 2 && EXTRACT_STATE.splitMode === "auto" ? "（已分离人声/伴奏）" : "") + "。", "ok");
-  } catch (e){
+    toastShow("音频已就绪", "拔带：" + (f.name || "") + " ・ 可直接点「提取单声部旋律」", "ok");  } catch (e){
     setStatus("拔带：音频解码失败：" + e.message + "。常见原因：格式不被浏览器支持或文件损坏。建议使用 wav / mp3 / m4a / ogg，文件不超过 100MB；可先转成 mp3 后重试。", "err");
-  }
+    toastShow("音频解码失败", "格式不被浏览器支持或文件损坏，建议 wav / mp3 / m4a / ogg（<100MB）", "err");  }
 }
 function extractShiftOctave(delta){
   const r = EXTRACT_STATE.result;
@@ -4500,7 +4578,8 @@ function importRefJsonFile(file){
         catch (e){ throw new Error("JSON 解析失败（" + e.message + "）：请确认是 UTF-8 的 .json 文件"); }
         const v = importRefPackObject(obj, file.name);
         setStatus("已导入参考序列包：" + file.name + " · " + v.notes.length + " 音 · schema=" +
-          REF_JSON_SCHEMA + "。可直接试听 / 去诊断。", "ok");
+            REF_JSON_SCHEMA + "。可直接试听 / 去诊断。", "ok");
+        toastShow("参考序列包导入成功", file.name + " ・ 已设为当前参考序列", "ok");
         if ($("scoreNote"))
           $("scoreNote").innerHTML = "已导入参考序列包 <b>" + esc(file.name) + "</b> · " + v.notes.length +
             " 音（schema=" + REF_JSON_SCHEMA + "，字段与 catalog 口径一致）；来源为本地文件，未经过任何服务器。" +
@@ -4508,6 +4587,7 @@ function importRefJsonFile(file){
         resolve(true);
       } catch (e){
         setStatus("导入参考序列包失败：" + e.message, "err");
+        toastShow("参考序列包导入失败", e.message, "err");
         if ($("scoreNote"))
           $("scoreNote").innerHTML = '<span class="warnline">导入参考序列包失败：' + esc(e.message) + "</span>";
         resolve(false);
@@ -4515,6 +4595,7 @@ function importRefJsonFile(file){
     };
     fr.onerror = function(){
       setStatus("读取参考序列包失败：" + (file && file.name ? file.name : "未知文件"), "err");
+      toastShow("参考序列包读取失败", (file && file.name ? file.name : "未知文件"), "err");
       resolve(false);
     };
     fr.readAsText(file, "utf-8");
@@ -4955,6 +5036,7 @@ function setRef(notes, meta, label){
   renderRefBar();
   renderPendingCard();
   show("refGuide", false);
+  try { renderPracticeAdvice(); } catch (e){}
 }
 
 function renderPendingCard(){
@@ -5077,6 +5159,7 @@ function loadScoreFromText(filename, content){
     " 个 · 时长 " + fmtNum(r.meta.duration_sec, 2) + " 秒 · 音域 " +
     (r.meta.pitch_range ? (r.meta.pitch_range.min + "–" + r.meta.pitch_range.max) : "—");
   setStatus("乐谱解析完成，提供录音或音频文件后点「开始诊断（对齐参考序列）」。", "ok");
+  try { const _rm = (APP.ref && APP.ref.meta) || {}; toastShow("乐谱解析完成", (_rm.title || filename) + " ・ " + (APP.ref ? APP.ref.notes.length : 0) + " 个音", "ok"); } catch (e){}
 }
 
 async function onScoreFile(file){
@@ -5102,6 +5185,7 @@ async function onScoreFile(file){
     }
   } catch (e){
     setStatus("乐谱解析失败：" + e.message, "err");
+    toastShow("乐谱解析失败", e.message, "err");
     $("scoreNote").innerHTML = '<span class="warnline">' + esc(e.message) + "</span>";
   }
 }
@@ -5609,13 +5693,8 @@ function playPcmData(data, sr, label){
   const ctx = audioCtxGet();
   const buf = ctx.createBuffer(1, data.length, Math.max(1, sr || ctx.sampleRate));
   buf.getChannelData(0).set(data);
-  const src = ctx.createBufferSource();
-  src.buffer = buf;
-  src.connect(ctx.destination);
-  src.onended = function(){ if (PLAYER.node === src) PLAYER.node = null; };
-  src.start(0);
-  PLAYER.node = src;
   const sec = data.length / Math.max(1, sr || ctx.sampleRate);
+  upPlayBuf(buf, label || "音频轨", sec, 1);
   setStatus("试听中：" + (label || "音频轨") + "（共 " + fmtNum(sec, 2) + " s）。点「停止」或按 Esc 中断。", "ok");
   return sec;
 }
@@ -6729,7 +6808,8 @@ function extractApplyResult(r, dtMs){
     "已设为当前参考序列，可直接在下方录音比对。" +
     (warn ? "<br>" + warn : "");
   setStatus("拔带提取完成：已生成参考序列（" + m.n_notes + " 音，" + m.key_label + "，" +
-            fmtNum(m.tempo_bpm, 1) + " BPM）。", "ok");
+      fmtNum(m.tempo_bpm, 1) + " BPM）。", "ok");
+  toastShow("拔带提取完成", (EXTRACT_STATE.label || "录音") + " ・ " + m.n_notes + " 音 ・ " + m.key_label + " ・ " + fmtNum(m.tempo_bpm, 1) + " BPM，已设为参考序列", "ok");
   extractRenderAll();
 }
 
@@ -7046,7 +7126,7 @@ async function loadAppAudioFile(f){
     setStatus("正在解码音频…", "");
     APP.audio = await decodeAudioFile(f);
     APP.audioLabel = f.name + "（" + fmtNum(APP.audio.data.length / APP.audio.sr, 2) + " s @ " + APP.audio.sr + " Hz）";
-    if (APP.ref && APP.ref.notes && APP.ref.notes.length){
+    toastShow("音频已就绪", APP.audioLabel, "ok");    if (APP.ref && APP.ref.notes && APP.ref.notes.length){
       setStatus("音乐已就绪：" + APP.audioLabel + "。点「开始诊断（对齐参考序列）」开始分析。", "ok");
       show("refGuide", false);
     } else {
@@ -7055,7 +7135,7 @@ async function loadAppAudioFile(f){
     }
   } catch (e){
     const msg = "音频解码失败：" + e.message;
-    setStatus(msg, "err");
+    toastShow("音频解码失败", e.message, "err");    setStatus(msg, "err");
     throw e;
   }
 }
@@ -7104,9 +7184,9 @@ async function toggleRecord(){
         APP.audio = await decodeAudioFile(f);
         APP.audioLabel = "浏览器录音（" + fmtNum(APP.audio.data.length / APP.audio.sr, 2) + " s）";
         setStatus("录音已就绪：" + APP.audioLabel + "。点「开始诊断（对齐参考序列）」开始分析。", "ok");
-      } catch (e){
+        toastShow("录音已就绪", APP.audioLabel, "ok");      } catch (e){
         setStatus("录音解码失败：" + e.message + "。当前浏览器可能不支持该录音格式，请改用「选择音频文件」上传录音。", "err");
-      }
+        toastShow("录音解码失败", e.message, "err");      }
     };
     mr.start();
     btn.textContent = "停止录音";
@@ -9293,6 +9373,480 @@ init();
   else initSimple();
 })();
 
+
+/* ==================================================================
+   PART P4-P8 ・ 曲库上传入库 / 参考谱模式 / 全局居中提示 / 375 适配 / 统一播放器
+   （单文件零依赖、0 网络请求、不内置版权乐谱、不做 OCR、不做 ML 分离）
+   ================================================================== */
+
+/* ---------------- P6 全局居中提示组件 ---------------- */
+function toastShow(msg, sub, type){
+  try {
+    let root = document.getElementById("toastRoot");
+    if (!root){ root = document.createElement("div"); root.id = "toastRoot"; root.className = "toast-root"; document.body.appendChild(root); }
+    const it = document.createElement("div");
+    it.className = "toast-item " + (type === "err" ? "err" : "ok");
+    if (sub){
+      it.innerHTML = '<span class="t-title">' + esc(msg) + '</span><span class="t-sub">' + esc(sub) + '</span>';
+    } else {
+      it.innerHTML = '<span class="t-title">' + esc(msg) + '</span>';
+    }
+    root.appendChild(it);
+    if (root.children.length > 3) root.removeChild(root.firstChild);
+    try { window.TOAST_HISTORY = window.TOAST_HISTORY || []; window.TOAST_HISTORY.push({ type: type, msg: String(msg), ts: Date.now() }); } catch (e2){}
+    setTimeout(function(){
+      try { it.style.transition = "opacity .4s"; it.style.opacity = "0"; } catch (e3){}
+      setTimeout(function(){ try { if (it.parentNode) it.parentNode.removeChild(it); } catch (e4){} }, 430);
+    }, 3800);
+  } catch (e){}
+}
+
+/* ---------------- P8 统一播放器组件 ---------------- */
+const UP = { ctx: null, gain: null, buf: null, label: "", dur: 0, speed: 1, offset: 0, startedAt: 0, playing: false, timer: null, vol: 0.8 };
+function upEnsure(){
+  if (UP.ctx) return;
+  UP.ctx = audioCtxGet();
+  UP.gain = UP.ctx.createGain();
+  UP.gain.gain.value = UP.vol;
+  UP.gain.connect(UP.ctx.destination);
+}
+function upStopSrc(){
+  if (UP.timer){ clearInterval(UP.timer); UP.timer = null; }
+  if (UP.src){ try { UP.src.stop(); } catch (e){} UP.src = null; }
+  UP.playing = false;
+  const btn = document.getElementById("upPlayPause"); if (btn) btn.textContent = "播放";
+  upRenderUi();
+}
+function upStart(){
+  if (!UP.buf || !UP.ctx) return;
+  upStopSrc();
+  const src = UP.ctx.createBufferSource();
+  src.buffer = UP.buf;
+  src.playbackRate.value = UP.speed;
+  src.connect(UP.gain);
+  const off = Math.min(Math.max(0, UP.offset), Math.max(0, UP.dur - 0.02));
+  src.start(0, off);
+  UP.src = src; UP.startedAt = UP.ctx.currentTime; UP.offset = off; UP.playing = true;
+  const btn = document.getElementById("upPlayPause"); if (btn) btn.textContent = "暂停";
+  UP.timer = setInterval(upTick, 200);
+  upRenderUi();
+}
+function upPause(){
+  if (!UP.src || !UP.playing) return;
+  UP.offset += (UP.ctx.currentTime - UP.startedAt);
+  upStopSrc();
+  upRenderUi();
+}
+function upToggle(){
+  if (!UP.buf) return;
+  if (UP.playing) upPause(); else upStart();
+}
+function upSeek(frac){
+  if (!UP.buf || !UP.dur) return;
+  const t = Math.min(UP.dur - 0.02, Math.max(0, frac * UP.dur));
+  UP.offset = t;
+  if (UP.playing) upStart(); else upRenderUi();
+}
+function upVol(v){
+  UP.vol = Math.min(1, Math.max(0, Number(v) || 0));
+  if (UP.gain){ try { UP.gain.gain.value = UP.vol; } catch (e){} }
+}
+function upTick(){
+  if (!UP.playing || !UP.ctx){ upRenderUi(); return; }
+  const t = Math.min(UP.dur, UP.offset + (UP.ctx.currentTime - UP.startedAt));
+  if (UP.dur > 0 && t >= UP.dur - 0.03){ UP.offset = UP.dur; upStopSrc(); upRenderUi(); return; }
+  upRenderUi();
+}
+function upTimeStr(s){
+  s = Math.max(0, Math.floor(s || 0));
+  const m = Math.floor(s / 60), ss = s % 60;
+  return m + ":" + (ss < 10 ? "0" + ss : ss);
+}
+function upRenderUi(){
+  const p = document.getElementById("uniPlayer"); if (!p) return;
+  if (!UP.buf){ p.classList.remove("show"); return; }
+  p.classList.add("show");
+  const t = document.getElementById("upTitle"); if (t) t.textContent = UP.label;
+  const bp = document.getElementById("upPlayPause"); if (bp) bp.textContent = UP.playing ? "暂停" : "播放";
+  const cur = (UP.playing && UP.ctx) ? Math.min(UP.dur, UP.offset + (UP.ctx.currentTime - UP.startedAt)) : UP.offset;
+  const tm = document.getElementById("upTime"); if (tm) tm.textContent = upTimeStr(cur) + " / " + upTimeStr(UP.dur);
+  const frac = UP.dur > 0 ? Math.min(1, cur / UP.dur) : 0;
+  const fill = document.getElementById("upTrackFill"), thumb = document.getElementById("upTrackThumb");
+  if (fill) fill.style.width = (frac * 100) + "%";
+  if (thumb) thumb.style.left = (frac * 100) + "%";
+  const vol = document.getElementById("upVol"); if (vol) vol.value = String(Math.round(UP.vol * 100));
+}
+function upPlayBuf(buf, label, durSec, speed){
+  try {
+    upEnsure();
+    upStopSrc();
+    UP.buf = buf; UP.label = label || "试听"; UP.dur = (durSec && durSec > 0) ? durSec : (buf && buf.duration ? buf.duration : 0);
+    UP.speed = (speed && speed > 0) ? speed : 1; UP.offset = 0;
+    upStart();
+    upRenderUi();
+  } catch (e){ toastShow("播放失败", e.message, "err"); }
+}
+function upClose(){
+  upStopSrc();
+  UP.buf = null; UP.dur = 0;
+  const p = document.getElementById("uniPlayer"); if (p) p.classList.remove("show");
+}
+function upBindPlayer(){
+  const pp = document.getElementById("upPlayPause"); if (pp) pp.addEventListener("click", upToggle);
+  const cl = document.getElementById("upClose"); if (cl) cl.addEventListener("click", upClose);
+  const vv = document.getElementById("upVol");
+  if (vv) vv.addEventListener("input", function(){ upVol(parseFloat(this.value) / 100); });
+  const wrap = document.getElementById("upTrackWrap");
+  if (wrap) wrap.addEventListener("click", function(e){
+    const r = wrap.getBoundingClientRect();
+    if (r.width > 0) upSeek((e.clientX - r.left) / r.width);
+  });
+}
+
+/* ---------------- P5 ABC 自动解析（书写音原位，不做转调） ---------------- */
+function parseAbcText(content){
+  const lines = String(content).split(/\r?\n/);
+  const meta = { format: "abc", transpose: 0, transpose_src: "abc 书写音原位（未转调）", score_pitch: "written", sax_type: null, pending: [] };
+  let title = "", keyRaw = "C", mNum = 4, mDen = 4, lDen = 8, tempo = 100;
+  const body = [];
+  for (let i = 0; i < lines.length; i++){
+    const s = lines[i].trim();
+    if (!s || s.charAt(0) === "%") continue;
+    const m = s.match(/^([A-Za-z])\s*:\s*(.*)$/);
+    if (m){
+      const k = m[1].toUpperCase(), v = m[2].trim();
+      if (k === "T" && !title) title = v.replace(/\s*\([^)]*\)\s*$/, "");
+      else if (k === "K") keyRaw = v.split(/\s+/)[0] || "C";
+      else if (k === "M"){ const mm = v.match(/(\d+)\s*\/\s*(\d+)/); if (mm){ mNum = parseInt(mm[1], 10) || 4; mDen = parseInt(mm[2], 10) || 4; } }
+      else if (k === "L"){ const lm = v.match(/(\d+)\s*\/\s*(\d+)/); if (lm) lDen = parseInt(lm[2], 10) || 1; }
+      else if (k === "Q"){ const qm = v.match(/(\d+)\s*=\s*(\d+)/) || v.match(/(\d+)/); if (qm) tempo = parseInt(qm[2] || qm[1], 10) || 100; }
+      continue;
+    }
+    body.push(s);
+  }
+  const tune = body.join(" ");
+  const base = { c: 0, d: 2, e: 4, f: 5, g: 7, a: 9, b: 11 };
+  const notes = [];
+  const spb = 60 / tempo;
+  const unitBeats = 4 / lDen;
+  let t = 0, i = 0;
+  const pushNote = function(midi, beats){
+    notes.push({ midi: midi, midi_written: midi, onset_sec: +(t * spb).toFixed(6), dur_sec: +(beats * spb).toFixed(6), measure: null, beat: null });
+    t += beats;
+  };
+  const readDur = function(){
+    let beats = unitBeats, num = 0;
+    while (i < tune.length && /\d/.test(tune.charAt(i))){ num = num * 10 + parseInt(tune.charAt(i), 10); i++; }
+    if (num) beats = unitBeats * num;
+    let slash = 0;
+    while (i < tune.length && tune.charAt(i) === "/"){ slash++; i++; }
+    if (slash) beats = beats / Math.pow(2, slash);
+    if (i < tune.length && tune.charAt(i) === "."){ beats *= 1.5; i++; }
+    return beats;
+  };
+  const readOct = function(){
+    let oct = 0;
+    while (i < tune.length && (tune.charAt(i) === "'" || tune.charAt(i) === ",")){
+      if (tune.charAt(i) === "'") oct++; else oct--;
+      i++;
+    }
+    return oct;
+  };
+  while (i < tune.length){
+    const ch = tune.charAt(i);
+    if (ch === "^" || ch === "_" || ch === "="){
+      const acc = (ch === "^") ? 1 : (ch === "_" ? -1 : 0);
+      i++;
+      if (i < tune.length && /[a-gA-G]/.test(tune.charAt(i))){
+        const n = tune.charAt(i); i++;
+        const oct = readOct();
+        const lower = n.toLowerCase();
+        const midi = base[lower] + (lower === n ? 60 : 48) + oct * 12 + acc;
+        const beats = readDur();
+        pushNote(midi, beats);
+      }
+      continue;
+    }
+    if (/[a-gA-GzZxX]/.test(ch)){
+      const n = ch; i++;
+      const oct = readOct();
+      const isRest = /[zZxX]/.test(n);
+      const beats = readDur();
+      if (!isRest){
+        const lower = n.toLowerCase();
+        const midi = base[lower] + (lower === n ? 60 : 48) + oct * 12;
+        pushNote(midi, beats);
+      } else {
+        t += beats;
+      }
+      continue;
+    }
+    if (ch === "[" || ch === "]" || ch === "|" || ch === ":" || ch === "(" || ch === ")" || ch === "-" || ch === "_" || ch === "~" || ch === "!" || ch === "{" || ch === "}" || /\s/.test(ch) || /\d/.test(ch)){ i++; continue; }
+    i++;
+  }
+  if (!notes.length) throw new Error("ABC 解析后没有音符：请检查是否为有效 ABC 乐谱（需含音符行）");
+  let mx = 0, lo = Infinity, hi = -Infinity;
+  for (let k = 0; k < notes.length; k++){ mx = Math.max(mx, notes[k].onset_sec + notes[k].dur_sec); lo = Math.min(lo, notes[k].midi); hi = Math.max(hi, notes[k].midi); }
+  meta.title = title || "ABC 导入乐谱";
+  meta.n_notes = notes.length;
+  meta.duration_sec = +mx.toFixed(6);
+  meta.pitch_range = [midiToName(lo), midiToName(hi)];
+  meta.tempo_bpm = tempo;
+  meta.beats_per_measure = mNum;
+  meta.keys = [{ tonic: keyRaw, mode: "major" }];
+  meta.pending.push("ABC 按书写音原位读取（未做转调）；调号/拍号为头部粗读取，转调类谱面请以原谱为准");
+  return { notes: notes, meta: meta };
+}
+
+/* ---------------- P5 专业练习建议（基于曲目结构启发式） ---------------- */
+function buildPracticeAdvice(notes, meta){
+  if (!notes || notes.length < 4) return [];
+  const bpm = (meta && meta.tempo_bpm) || 100;
+  const spb = 60 / bpm;
+  const phrases = [];
+  let cur = [];
+  for (let i = 0; i < notes.length; i++){
+    const n = notes[i];
+    const prevEnd = cur.length ? (cur[cur.length - 1].onset_sec + cur[cur.length - 1].dur_sec) : n.onset_sec;
+    if (cur.length && (n.onset_sec - prevEnd > 0.45 || n.dur_sec >= 1.8 * spb)){ phrases.push(cur); cur = []; }
+    cur.push(n);
+  }
+  if (cur.length) phrases.push(cur);
+  if (!phrases.length) phrases.push(notes.slice());
+  const items = [];
+  const breath = phrases.map(function(ph, idx){
+    const last = ph[ph.length - 1];
+    return "第" + (idx + 1) + "句结束处（" + fmtNum(last.onset_sec + last.dur_sec, 1) + "s）";
+  });
+  items.push({ k: "气口（换气）", v: "推荐在" + breath.join("、") + "吸气；若乐句含休止符，优先在休止处换气，保持句子完整不断裂。" });
+  let avg = 0, hi = -Infinity, hiAt = 0;
+  for (let i = 0; i < notes.length; i++){ avg += notes[i].midi; if (notes[i].midi > hi){ hi = notes[i].midi; hiAt = i; } }
+  avg /= notes.length;
+  const reg = (hi - avg > 7) ? "偏高" : ((hi - avg > 2) ? "适中" : "偏低");
+  items.push({ k: "力度（强弱）", v: "全曲音区" + reg + "，最高音在 " + fmtNum(notes[hiAt].onset_sec, 1) + "s 处（" + midiToName(hi) + "）；建议句首弱起（mp），接近最高音渐强至 f，长音尾端渐弱（>）收束。" });
+  const emo = (hi - avg > 9) ? "明亮、有张力：保持声音向前并带表现力" : ((avg >= 62) ? "温暖舒展：保持歌唱性与连贯" : "低沉内敛：控制气息、轻柔起音");
+  items.push({ k: "情绪走向", v: emo + "；重复乐句（若有）第二次可加入力度对比增强层次。" });
+  const dense = (meta && meta.duration_sec > 0) ? (notes.length / meta.duration_sec) : 3;
+  items.push({ k: "速度", v: (dense > 4) ? "音符较密集，建议先以 " + Math.round(bpm * 0.8) + " BPM 慢练稳定指法/气息，再逐步提速到 " + bpm + " BPM" : "保持 " + bpm + " BPM 稳定推进；长音处可稍自由处理，但回拍要稳。" });
+  return items;
+}
+function renderPracticeAdvice(){
+  const box = document.getElementById("adviceBox");
+  if (!box) return;
+  if (!APP.ref || !APP.ref.notes || !APP.ref.notes.length){ box.innerHTML = ""; return; }
+  let items = [];
+  try { items = buildPracticeAdvice(APP.ref.notes, APP.ref.meta); } catch (e){ return; }
+  if (!items.length){ box.innerHTML = ""; return; }
+  box.innerHTML = '<div class="advice-card"><h4>练习建议（基于曲目结构启发式）</h4>' +
+    items.map(function(it){ return '<div class="adv-item"><b>' + esc(it.k) + '：</b>' + esc(it.v) + "</div>"; }).join("") +
+    '<div class="adv-item" style="color:#8A5A1B;font-size:12.5px">提示：建议为启发式参考，具体以你的老师与乐谱标注为准。</div></div>';
+}
+
+/* ---------------- P4 我的曲库（用户自备谱上传入库） ---------------- */
+const MYLIB_KEY = "yinzhen_userlib_v1";
+const MYLIB_KIND = { jianpu: "文本简谱", abc: "ABC", musicxml: "MusicXML", image: "图片谱(参考)", pdf: "PDF(参考)" };
+function myLibLoad(){ try { const a = JSON.parse(localStorage.getItem(MYLIB_KEY)); return Array.isArray(a) ? a : []; } catch (e){ return []; } }
+function myLibSave(a){
+  try { localStorage.setItem(MYLIB_KEY, JSON.stringify(a)); return true; }
+  catch (e){ toastShow("入库失败", "本地存储空间不足：请删除部分条目或改用更小文件", "err"); return false; }
+}
+function myLibKindName(k){ return MYLIB_KIND[k] || String(k); }
+function myLibRender(){
+  const list = document.getElementById("myLibList"); if (!list) return;
+  const a = myLibLoad();
+  list.innerHTML = a.length ? a.map(function(it){
+    const d = new Date(it.created || Date.now());
+    const ds = d.getFullYear() + "-" + ((d.getMonth() + 1) < 10 ? "0" : "") + (d.getMonth() + 1) + "-" + (d.getDate() < 10 ? "0" : "") + d.getDate();
+    return '<div class="lib-my-item" data-id="' + it.id + '">' +
+      '<span class="mi-title">' + esc(it.title) + '</span>' +
+      '<span class="mi-kind">' + myLibKindName(it.kind) + " 路 " + ds + '</span>' +
+      '<button class="ghost mini" data-act="view">查看</button>' +
+      '<button class="ghost mini" data-act="practice">导入练习</button>' +
+      '<button class="ghost mini" data-act="del">删除</button>' +
+      "</div>";
+  }).join("") : '<div class="note" style="margin-top:0">暂无入库曲谱：上传文本简谱 / ABC / MusicXML 自动解析入库，或图片 / PDF 作参考谱入库。</div>';
+  const hint = document.getElementById("myLibHint");
+  if (hint) hint.textContent = "已入库 " + a.length + " 条（仅存本机 localStorage，不联网不上传）";
+  try { window.MYLIB_COUNT = a.length; } catch (e){}
+}
+function myLibAddFiles(files){
+  if (!files || !files.length) return;
+  const a = myLibLoad();
+  const now = Date.now();
+  let added = 0, failed = 0;
+  const done = function(){ if (added || failed) myLibRender(); };
+  for (let fi = 0; fi < files.length; fi++){
+    const f = files[fi];
+    const dot = f.name.lastIndexOf(".");
+    const ext = (dot >= 0 ? f.name.slice(dot + 1) : "").toLowerCase();
+    const item = { id: now + fi, title: f.name, created: now, data: null, kind: "" };
+    const finish = function(){
+      try {
+        if (item.kind === "abc"){ parseAbcText(item.data); }
+        else if (item.kind === "jianpu" || item.kind === "musicxml"){ if (!String(item.data).trim()) throw new Error("文件内容为空"); }
+        a.push(item);
+        if (myLibSave(a)){ added++; toastShow("入库成功", f.name + " ・ " + myLibKindName(item.kind), "ok"); }
+      } catch (e){ failed++; toastShow("入库失败", f.name + "：" + e.message, "err"); }
+      done();
+    };
+    const readTextAs = function(kind){
+      const reader = new FileReader();
+      reader.onload = function(){ item.kind = kind; item.data = String(reader.result); finish(); };
+      reader.onerror = function(){ failed++; toastShow("入库失败", f.name + "：文件读取失败", "err"); done(); };
+      reader.readAsText(f, "utf-8");
+    };
+    const readDataAs = function(kind){
+      const reader = new FileReader();
+      reader.onload = function(){ item.kind = kind; item.data = String(reader.result); finish(); };
+      reader.onerror = function(){ failed++; toastShow("入库失败", f.name + "：文件读取失败", "err"); done(); };
+      reader.readAsDataURL(f);
+    };
+    if (ext === "txt" || ext === "csv" || ext === "tsv") readTextAs("jianpu");
+    else if (ext === "abc") readTextAs("abc");
+    else if (ext === "musicxml" || ext === "xml") readTextAs("musicxml");
+    else if (ext === "png" || ext === "jpg" || ext === "jpeg" || ext === "webp"){
+      if (f.size > 2 * 1024 * 1024){ failed++; toastShow("图片谱过大", f.name + "：>2MB 不入库（仅展示可手动录入文本简谱）", "err"); done(); continue; }
+      readDataAs("image");
+    }
+    else if (ext === "pdf"){
+      if (f.size > 2 * 1024 * 1024){ failed++; toastShow("PDF 过大", f.name + "：>2MB 不入库（仅本次查看）", "err"); done(); continue; }
+      readDataAs("pdf");
+    }
+    else {
+      failed++; toastShow("不支持的文件类型", f.name + "：仅支持 txt/csv/tsv、abc、musicxml/xml、png/jpg/jpeg/webp、pdf", "err"); done();
+    }
+  }
+}
+function myLibDel(id){
+  const a = myLibLoad();
+  const idx = a.findIndex(function(x){ return String(x.id) === String(id); });
+  if (idx < 0) return;
+  const it = a[idx];
+  a.splice(idx, 1);
+  if (myLibSave(a)){
+    toastShow("已删除", it.title, "ok");
+    myLibRender();
+    const v = document.getElementById("myLibImgs"); if (v) v.innerHTML = "";
+  }
+}
+function myLibPractice(id){
+  const a = myLibLoad();
+  const it = a.find(function(x){ return String(x.id) === String(id); });
+  if (!it) return;
+  try {
+    if (it.kind === "jianpu" || it.kind === "musicxml"){
+      loadScoreFromText(it.title, it.data);
+      toastShow("已导入练习", it.title + " ・ " + myLibKindName(it.kind) + " 已解析为参考序列", "ok");
+      switchMode("piece");
+    } else if (it.kind === "abc"){
+      const r = parseAbcText(it.data);
+      setRef(r.notes, r.meta, "曲库导入：" + it.title + " ・ " + r.notes.length + " 个音");
+      const pend = document.getElementById("piecePending");
+      if (pend){ pend.classList.remove("hidden"); pend.innerHTML = scorePendingHtml(r.meta) + "<br>曲目参考序列来自你自持授权的 ABC 乐谱，系统不内置、不校验该乐谱的版本与版权归属。"; }
+      const sn = document.getElementById("scoreNote");
+      if (sn) sn.innerHTML = "<b>已解析</b>：" + esc(it.title) + " ・ 音符 " + r.notes.length + " 个 ・ 时长 " + fmtNum(r.meta.duration_sec, 2) + " 秒";
+      toastShow("已导入练习", it.title + " ・ ABC 已解析为参考序列", "ok");
+      switchMode("piece");
+    } else if (it.kind === "image" || it.kind === "pdf"){
+      toastShow("参考谱模式", "红线内不做 OCR 自动识别：请按参考谱手动录入文本简谱（1=G 4/4 T=72 …）进行分析", "err");
+      switchMode("piece");
+      const ta = document.getElementById("scorePaste"); if (ta) ta.focus();
+    } else {
+      throw new Error("未知条目类型：" + it.kind);
+    }
+  } catch (e){ toastShow("导入练习失败", e.message, "err"); }
+}
+function myLibView(id){
+  const a = myLibLoad();
+  const it = a.find(function(x){ return String(x.id) === String(id); });
+  const box = document.getElementById("myLibImgs"); if (!box) return;
+  if (!it){ box.innerHTML = ""; return; }
+  if (it.kind === "image"){
+    box.innerHTML = '<div class="ref-img-row"><div class="note" style="margin-top:0">' + esc(it.title) + " ・ 图片参考谱（长图自动切行显示，红线内不做 OCR）</div><img src=\"" + it.data + '" alt="' + esc(it.title) + '" style="max-width:100%;height:auto;display:block;border-radius:6px"></div>';
+  } else if (it.kind === "pdf"){
+    box.innerHTML = '<div class="ref-img-row"><div class="note" style="margin-top:0">' + esc(it.title) + " ・ PDF 参考谱（红线内不做 OCR，可按参考谱手动录入文本简谱）</div><iframe class=\"refscore-pdf\" src=\"" + it.data + '" title="' + esc(it.title) + '"></iframe></div>';
+  } else {
+    const rawStr = String(it.data);
+    const preview = rawStr.length > 600 ? rawStr.slice(0, 600) + "…（预览，完整内容见导入练习）" : rawStr;
+    box.innerHTML = '<div class="ref-img-row"><div class="note" style="margin-top:0">' + esc(it.title) + " ・ " + myLibKindName(it.kind) + " 内容预览（前 600 字符）</div><pre style=\"white-space:pre-wrap;word-break:break-all;font-size:12px;max-height:260px;overflow:auto;margin:6px 0 0\">" + esc(preview) + "</pre></div>";
+  }
+  toastShow("查看条目", it.title, "ok");
+}
+function myLibBind(){
+  const input = document.getElementById("myLibFile"); if (!input) return;
+  input.addEventListener("change", function(){ myLibAddFiles(this.files); this.value = ""; });
+  const btn = document.getElementById("btnMyLibUpload"); if (btn) btn.addEventListener("click", function(){ input.click(); });
+  const drop = document.getElementById("myLibDrop");
+  if (drop) bindDropZone("myLibDrop", function(f){ myLibAddFiles([f]); }, ["txt","csv","tsv","abc","musicxml","xml","png","jpg","jpeg","webp","pdf"]);
+  const list = document.getElementById("myLibList");
+  if (list) list.addEventListener("click", function(e){
+    const btn2 = e.target && e.target.closest ? e.target.closest("button[data-act]") : null;
+    if (!btn2) return;
+    const row = btn2.closest ? btn2.closest(".lib-my-item") : null;
+    const id = row ? row.getAttribute("data-id") : null;
+    if (!id) return;
+    const act = btn2.getAttribute("data-act");
+    if (act === "del") myLibDel(id);
+    else if (act === "practice") myLibPractice(id);
+    else if (act === "view") myLibView(id);
+  });
+}
+
+/* ---------------- P5 图片/PDF 参考谱展示（练习页） ---------------- */
+function showRefScore(file){
+  const box = document.getElementById("refScoreBox"); if (!box) return;
+  const dot = file.name.lastIndexOf(".");
+  const ext = (dot >= 0 ? file.name.slice(dot + 1) : "").toLowerCase();
+  if (["png","jpg","jpeg","webp","pdf"].indexOf(ext) < 0){ toastShow("参考谱失败", "仅支持 png / jpg / jpeg / webp / pdf", "err"); return; }
+  const reader = new FileReader();
+  reader.onload = function(){
+    const data = String(reader.result);
+    if (ext === "pdf"){
+      box.innerHTML = '<div class="refscore-box"><b>' + esc(file.name) + "</b> ・ PDF 参考谱（红线内不做 OCR 自动识别）" +
+        '<div class="refscore-note">可按参考谱手动录入下方文本简谱（1=G 4/4 T=72 …）进行分析；也可<a href="#" data-mylib="1">加入我的曲库</a>。</div>' +
+        '<iframe class="refscore-pdf" src="' + data + '" title="' + esc(file.name) + '"></iframe></div>';
+    } else {
+      box.innerHTML = '<div class="refscore-box"><b>' + esc(file.name) + "</b> ・ 图片参考谱（红线内不做 OCR 自动识别；长图自动切行显示）" +
+        '<div class="refscore-note">可按参考谱手动录入下方文本简谱（1=G 4/4 T=72 …）进行分析；也可<a href="#" data-mylib="1">加入我的曲库</a>。</div>' +
+        '<img class="refscore-img" src="' + data + '" alt="' + esc(file.name) + '"></div>';
+    }
+    const link = box.querySelector("a[data-mylib]");
+    if (link) link.addEventListener("click", function(ev){ ev.preventDefault(); myLibAddFiles([file]); });
+    toastShow("参考谱已载入", file.name + " ・ 参考谱模式（不做 OCR），可按谱手动录入文本简谱", "ok");
+  };
+  reader.onerror = function(){ toastShow("参考谱载入失败", file.name + "：文件读取失败", "err"); };
+  reader.readAsDataURL(file);
+}
+function bindRefScore(){
+  const input = document.getElementById("refScoreImgFile"); if (!input) return;
+  input.addEventListener("change", function(){ const f = this.files && this.files[0]; if (f) showRefScore(f); this.value = ""; });
+  const drop = document.getElementById("refScoreImgDrop");
+  if (drop) bindDropZone("refScoreImgDrop", function(f){ showRefScore(f); }, ["png","jpg","jpeg","webp","pdf"]);
+}
+
+/* ---------------- 初始化：P4/P5/P6/P8 绑定 ---------------- */
+(function initP4P8(){
+  try { myLibBind(); } catch (e){}
+  try { bindRefScore(); } catch (e){}
+  try { myLibRender(); } catch (e){}
+  try { upBindPlayer(); } catch (e){}
+  try { window.P8_READY = true; } catch (e){}
+})();
+
 </script>
+
+<!-- ===== P6 全局居中提示 ===== -->
+<div id="toastRoot" class="toast-root"></div>
+<!-- ===== P8 统一播放器 ===== -->
+<div id="uniPlayer" class="uniplayer">
+  <div class="up-head"><b id="upTitle">试听</b><button class="ghost mini" id="upClose">关闭</button></div>
+  <div class="up-controls">
+    <button id="upPlayPause">播放</button>
+    <div class="up-track" id="upTrackWrap"><div class="up-fill" id="upTrackFill"></div><div class="up-thumb" id="upTrackThumb"></div></div>
+    <span id="upTime">0:00 / 0:00</span>
+    <label class="up-vol">音量<input type="range" id="upVol" min="0" max="100" step="1" value="80"></label>
+  </div>
+</div>
+
 </body>
 </html>
